@@ -13,8 +13,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartOptions,
-  TooltipItem,
+  type TooltipItem,
 } from "chart.js";
 import { Bar, Pie, Doughnut, Line } from "react-chartjs-2";
 
@@ -109,13 +108,13 @@ export const ChartsTab: React.FC = () => {
       ],
     };
 
-    const options: ChartOptions = {
+    const options: any = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
           display: c.type === "pie" || c.type === "doughnut",
-          position: "bottom",
+          position: "bottom" as const,
           labels: { font: { size: 10 }, boxWidth: 10 },
         },
         tooltip: {
@@ -123,24 +122,25 @@ export const ChartsTab: React.FC = () => {
             label: (context: TooltipItem<any>) => {
               let label = context.label || "";
               if (label) label += ": ";
-              if (context.parsed.y !== undefined)
-                label += fmtM(context.parsed.y);
+              if (context.parsed && (context.parsed as any).y !== undefined)
+                label += fmtM((context.parsed as any).y);
               else if (context.parsed !== undefined)
-                label += fmtM(context.parsed);
+                label += fmtM(context.parsed as number);
               return label;
             },
           },
         },
       },
-      scales:
-        c.type === "pie" || c.type === "doughnut"
-          ? {}
-          : {
+      ...(c.type !== "pie" && c.type !== "doughnut"
+        ? {
+            scales: {
               x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
               y: {
                 ticks: { font: { size: 9 }, callback: (v: any) => fmtM(v) },
               },
             },
+          }
+        : {}),
     };
 
     return (
