@@ -1,0 +1,3670 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Веб-додаток для управління проектами за допомогою діаграм Ганта з офлайн-доступом"
+    />
+    <meta name="theme-color" content="#1e50c8" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Ганtt Про" />
+    <link rel="manifest" href="./manifest.json" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231e50c8' width='192' height='192' rx='40'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='100' fill='white'>📅</text></svg>"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231e50c8' width='192' height='192' rx='40'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='100' fill='white'>📅</text></svg>"
+    />
+    <title>Ганtt Про</title>
+    <style>
+      :root {
+        --bg: #f5f4f1;
+        --surf: #fff;
+        --surf2: #f0efe9;
+        --bord: #e0dcd5;
+        --bord2: #c4bfb6;
+        --txt: #18170f;
+        --txt2: #6a6760;
+        --txt3: #a09d97;
+        --acc: #1e50c8;
+        --acc2: #1a44b0;
+        --ok: #16803c;
+        --warn: #c07800;
+        --err: #c42b2b;
+        --hdr: #1b2233;
+        --hdr2: #28344a;
+        --hw: 18px;
+        --nw: 34px;
+        --nmw: 175px;
+        --ctw: 105px;
+        --cw: 25px;
+        --row: 30px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--txt);
+        font-size: 13px;
+      }
+      /* ── HEAD ── */
+      .app-head {
+        background: var(--surf);
+        border-bottom: 1px solid var(--bord);
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 300;
+      }
+      .proj-block {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        min-width: 200px;
+      }
+      .proj-sel {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border: 1px solid var(--bord2);
+        border-radius: 5px;
+        background: var(--surf);
+        color: var(--txt);
+        cursor: pointer;
+        max-width: 200px;
+      }
+      .proj-dates {
+        font-size: 10px;
+        color: var(--txt3);
+      }
+      .btn {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 5px 10px;
+        border-radius: 5px;
+        border: 1px solid var(--bord2);
+        background: var(--surf);
+        color: var(--txt);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.1s;
+      }
+      .btn:hover {
+        background: var(--surf2);
+      }
+      .btn-acc {
+        background: var(--acc);
+        color: #fff;
+        border-color: var(--acc);
+      }
+      .btn-acc:hover {
+        background: var(--acc2);
+      }
+      .btn-tog {
+        border-color: var(--acc);
+        color: var(--acc);
+      }
+      .btn-tog.on {
+        background: var(--acc);
+        color: #fff;
+      }
+      .btn-icon {
+        padding: 5px 7px;
+        font-size: 13px;
+      }
+      /* ── TABS / LEGEND ── */
+      .tabs {
+        background: var(--surf);
+        border-bottom: 1px solid var(--bord);
+        padding: 0 14px;
+        display: flex;
+      }
+      .tab {
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--txt2);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .tab.active {
+        color: var(--acc);
+        border-bottom-color: var(--acc);
+      }
+      .legend-bar {
+        background: var(--surf);
+        border-bottom: 1px solid var(--bord);
+        padding: 5px 14px;
+        display: flex;
+        gap: 9px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .leg {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--txt2);
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 4px;
+        user-select: none;
+      }
+      .leg:hover {
+        background: var(--surf2);
+      }
+      .leg.off {
+        opacity: 0.35;
+        text-decoration: line-through;
+      }
+      .leg-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      /* ── PANES ── */
+      .pane {
+        display: none;
+        padding: 12px 14px 40px;
+      }
+      .pane.active {
+        display: block;
+      }
+      /* ── GANTT ── */
+      .gantt-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+      }
+      table.gt {
+        border-collapse: collapse;
+        min-width: max-content;
+        background: var(--surf);
+      }
+      table.gt thead tr:first-child th {
+        background: var(--hdr);
+        color: #dde4f0;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+        height: 26px;
+        border-right: 1px solid #3a4a65;
+        white-space: nowrap;
+        padding: 0 4px;
+      }
+      table.gt thead tr:last-child th {
+        background: var(--hdr2);
+        color: #8899bb;
+        font-size: 9px;
+        text-align: center;
+        height: 20px;
+      }
+      th.th-h {
+        width: var(--hw);
+        min-width: var(--hw);
+        position: sticky;
+        left: 0;
+        z-index: 12;
+        background: var(--hdr) !important;
+      }
+      th.th-n {
+        width: var(--nw);
+        min-width: var(--nw);
+        position: sticky;
+        left: var(--hw);
+        z-index: 12;
+        border-right: 1px solid #3a4a65;
+      }
+      th.th-nm {
+        width: var(--nmw);
+        min-width: var(--nmw);
+        text-align: left !important;
+        padding-left: 8px !important;
+        position: sticky;
+        left: calc(var(--hw) + var(--nw));
+        z-index: 12;
+        border-right: 1px solid #3a4a65;
+      }
+      th.th-ct {
+        width: var(--ctw);
+        min-width: var(--ctw);
+        text-align: left !important;
+        padding-left: 6px !important;
+        border-right: 1px solid #3a4a65;
+      }
+      th.th-mo {
+        border-left: 1px solid #3a4a65;
+      }
+      th.th-wk {
+        width: var(--cw);
+        min-width: var(--cw);
+        border-left: 1px solid #2e3d58;
+      }
+      th.th-wk.ms {
+        border-left: 1px solid #3a4a65 !important;
+      }
+      tbody tr {
+        height: var(--row);
+      }
+      tbody tr:hover td {
+        background: #f4f7ff !important;
+      }
+      tbody tr.row-dragging {
+        opacity: 0.5;
+      }
+      tbody tr.row-drag-over td {
+        border-top: 2px solid var(--acc) !important;
+      }
+      td.td-h {
+        width: var(--hw);
+        min-width: var(--hw);
+        background: var(--surf2);
+        position: sticky;
+        left: 0;
+        z-index: 4;
+        text-align: center;
+        cursor: grab;
+        border-right: 1px solid var(--bord);
+        color: var(--txt3);
+        font-size: 11px;
+      }
+      td.td-h:hover {
+        background: var(--bord);
+        color: var(--txt2);
+      }
+      td.td-h:active {
+        cursor: grabbing;
+      }
+      td.td-n {
+        text-align: center;
+        font-size: 10px;
+        color: var(--txt3);
+        background: var(--surf2);
+        border-right: 1px solid var(--bord);
+        position: sticky;
+        left: var(--hw);
+        z-index: 4;
+      }
+      td.td-nm {
+        font-size: 11px;
+        padding: 0 5px 0 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: var(--nmw);
+        border-right: 1px solid var(--bord);
+        background: var(--surf);
+        position: sticky;
+        left: calc(var(--hw) + var(--nw));
+        z-index: 4;
+        cursor: pointer;
+      }
+      td.td-nm:hover {
+        background: #eff4ff !important;
+      }
+      td.td-ct {
+        font-size: 10px;
+        color: var(--txt2);
+        padding: 0 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: var(--ctw);
+        border-right: 2px solid var(--bord2);
+        background: var(--surf);
+        font-style: italic;
+      }
+      .nm-inner {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .del-btn {
+        flex-shrink: 0;
+        opacity: 0;
+        color: var(--err);
+        font-size: 11px;
+        cursor: pointer;
+        padding: 1px 3px;
+        border-radius: 3px;
+        margin-left: auto;
+      }
+      td.td-nm:hover .del-btn {
+        opacity: 1;
+      }
+      .dep-ic {
+        font-size: 10px;
+        flex-shrink: 0;
+        cursor: help;
+      }
+      td.td-c {
+        width: var(--cw);
+        min-width: var(--cw);
+        border-right: 1px solid var(--bord);
+        position: relative;
+        overflow: visible;
+        background: var(--surf);
+      }
+      td.td-c.ms {
+        border-left: 1px solid var(--bord2);
+      }
+      td.td-c.today-col {
+        background: rgba(220, 50, 50, 0.07) !important;
+      }
+      tr:nth-child(even) td.td-h,
+      tr:nth-child(even) td.td-n,
+      tr:nth-child(even) td.td-nm,
+      tr:nth-child(even) td.td-ct {
+        background: #f8f7f4;
+      }
+      tr:nth-child(even) td.td-c {
+        background: #fcfbf8;
+      }
+      .today-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 2px;
+        background: #e03030;
+        z-index: 8;
+        pointer-events: none;
+      }
+      /* ── BAR ── */
+      .bar {
+        position: absolute;
+        top: 4px;
+        bottom: 4px;
+        border-radius: 4px;
+        cursor: grab;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        user-select: none;
+        z-index: 2;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .bar:hover {
+        filter: brightness(1.07);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+      .bar.dragging {
+        cursor: grabbing;
+        opacity: 0.8;
+      }
+      .bh {
+        width: 6px;
+        flex-shrink: 0;
+        height: 100%;
+        cursor: ew-resize;
+        background: rgba(0, 0, 0, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .bh:hover {
+        background: rgba(0, 0, 0, 0.24);
+      }
+      .bl {
+        font-size: 9px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        flex: 1;
+        padding: 0 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      .prog-fill {
+        position: absolute;
+        top: 0;
+        left: 6px;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.17);
+        pointer-events: none;
+      }
+      /* ── FINANCE ── */
+      .fin-filters {
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+      }
+      .ff-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .ff-group label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--txt3);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .ff-group select,
+      .ff-group input {
+        font-size: 11px;
+        padding: 4px 7px;
+        border: 1px solid var(--bord2);
+        border-radius: 4px;
+        background: var(--surf);
+        color: var(--txt);
+        min-width: 110px;
+      }
+      .ff-group.range {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+      }
+      .ff-group.range label {
+        align-self: center;
+        font-size: 11px;
+        color: var(--txt2);
+      }
+      .fin-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .fc {
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        padding: 11px;
+        text-align: center;
+      }
+      .fc .lbl {
+        font-size: 9px;
+        color: var(--txt3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 3px;
+      }
+      .fc .val {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .fc .sub {
+        font-size: 9px;
+        color: var(--txt3);
+        margin-top: 1px;
+      }
+      .fin-tbl {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 11px;
+      }
+      .fin-tbl th {
+        background: var(--surf2);
+        padding: 6px 9px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--txt2);
+        border-bottom: 1px solid var(--bord);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+      }
+      .fin-tbl th:hover {
+        background: var(--bord);
+      }
+      .fin-tbl th .sa::after {
+        content: "↕";
+        opacity: 0.35;
+        margin-left: 3px;
+      }
+      .fin-tbl th.asc .sa::after {
+        content: "↑";
+        opacity: 1;
+      }
+      .fin-tbl th.desc .sa::after {
+        content: "↓";
+        opacity: 1;
+      }
+      .fin-tbl td {
+        padding: 5px 9px;
+        border-bottom: 1px solid var(--bord);
+        vertical-align: middle;
+      }
+      .fin-tbl tr:last-child td {
+        border-bottom: none;
+      }
+      .fin-tbl tr:hover td {
+        background: #f6f9ff;
+      }
+      .fin-tbl tr.ttl td {
+        background: var(--surf2);
+        font-weight: 600;
+        border-top: 2px solid var(--bord2);
+      }
+      .pb {
+        width: 65px;
+        height: 7px;
+        background: var(--surf2);
+        border-radius: 4px;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .pb-f {
+        height: 100%;
+        border-radius: 4px;
+      }
+      .nr {
+        text-align: right;
+      }
+      .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 600;
+        color: #fff;
+      }
+      /* ── CHARTS ── */
+      .chart-builder {
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+      }
+      .chart-builder h4 {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--txt2);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 10px;
+      }
+      .cb-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+      }
+      .cb-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .cb-group label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--txt3);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .cb-group select {
+        font-size: 11px;
+        padding: 4px 7px;
+        border: 1px solid var(--bord2);
+        border-radius: 4px;
+        background: var(--surf);
+        color: var(--txt);
+      }
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 14px;
+      }
+      .chart-card {
+        background: var(--surf);
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        padding: 12px;
+      }
+      /* ── CHART CARD ACTIONS ── */
+      .chart-card h4 {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--txt2);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chart-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .chart-act-btn {
+        font-size: 11px;
+        padding: 2px 6px;
+        border: 1px solid var(--bord2);
+        border-radius: 4px;
+        background: var(--surf);
+        color: var(--txt2);
+        cursor: pointer;
+        opacity: 0.6;
+      }
+      .chart-act-btn:hover {
+        opacity: 1;
+        background: var(--surf2);
+      }
+      .chart-act-btn.del {
+        color: var(--err);
+        border-color: transparent;
+      }
+      /* ── MODAL ── */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 500;
+      }
+      .modal {
+        background: var(--surf);
+        border-radius: 10px;
+        padding: 20px;
+        width: 440px;
+        max-width: 95vw;
+        max-height: 92vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+      }
+      .modal h3 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 14px;
+      }
+      .fg {
+        margin-bottom: 10px;
+      }
+      .fg label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--txt2);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+        margin-bottom: 3px;
+      }
+      .fg input,
+      .fg select {
+        width: 100%;
+        font-size: 12px;
+        padding: 6px 8px;
+        border: 1px solid var(--bord2);
+        border-radius: 5px;
+        background: var(--surf);
+        color: var(--txt);
+        font-family: inherit;
+        outline: none;
+      }
+      .fg input:focus,
+      .fg select:focus {
+        border-color: var(--acc);
+        box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+      }
+      .row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .m-btns {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+      }
+      .cat-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .chip {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        border: 2px solid transparent;
+        opacity: 0.7;
+      }
+      .chip.sel {
+        border-color: rgba(0, 0, 0, 0.4);
+        opacity: 1;
+      }
+      .dep-list {
+        max-height: 90px;
+        overflow-y: auto;
+        border: 1px solid var(--bord);
+        border-radius: 5px;
+        padding: 3px;
+      }
+      .dep-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .dep-item:hover {
+        background: var(--surf2);
+      }
+      .prog-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .prog-row input[type="range"] {
+        flex: 1;
+      }
+      .prog-row span {
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 32px;
+        text-align: right;
+      }
+      .warn-box {
+        background: #fffbea;
+        border: 1px solid #f0d070;
+        border-radius: 5px;
+        padding: 7px 10px;
+        font-size: 11px;
+        color: #7a5500;
+        margin-top: 5px;
+        display: none;
+      }
+      .warn-box.show {
+        display: block;
+      }
+      .calc-row {
+        background: var(--surf2);
+        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: var(--txt2);
+      }
+      .calc-row b {
+        color: var(--txt);
+      }
+      /* ── CATEGORY EDITOR ── */
+      .cat-editor-list {
+        border: 1px solid var(--bord);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        max-height: 440px;
+        overflow-y: auto;
+      }
+      .cat-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--bord);
+        background: var(--surf);
+      }
+      .cat-row:last-child {
+        border-bottom: none;
+      }
+      .cat-row:hover {
+        background: var(--surf2);
+      }
+      .cat-name-inp {
+        flex: 1;
+        font-size: 13px;
+        padding: 6px 9px;
+        border: 1px solid var(--bord2);
+        border-radius: 5px;
+        background: var(--surf);
+        color: var(--txt);
+        font-family: inherit;
+        outline: none;
+        height: 28px;
+        align-self: flex-start;
+      }
+      .cat-name-inp:focus {
+        border-color: var(--acc);
+        box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+      }
+      .cat-del {
+        color: var(--err);
+        cursor: pointer;
+        padding: 3px 6px;
+        border-radius: 4px;
+        opacity: 0.5;
+        font-size: 14px;
+        flex-shrink: 0;
+        align-self: flex-start;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        height: 28px;
+      }
+      .cat-del:hover {
+        background: #fee2e2;
+        opacity: 1;
+      }
+      .cat-swatch {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: 2px solid rgba(0, 0, 0, 0.18);
+        transition:
+          transform 0.1s,
+          border-color 0.1s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      }
+      .cat-swatch:hover {
+        transform: scale(1.1);
+        border-color: rgba(0, 0, 0, 0.4);
+      }
+      .cat-palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        width: 100px;
+        margin-top: 5px;
+      }
+      .pal-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition:
+          transform 0.1s,
+          border-color 0.1s;
+      }
+      .pal-dot:hover {
+        transform: scale(1.18);
+      }
+      .pal-dot.active {
+        border-color: rgba(0, 0, 0, 0.55);
+        transform: scale(1.1);
+      }
+      /* ── PROJECT LIST ── */
+      .proj-list {
+        border: 1px solid var(--bord);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .pj-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--bord);
+        cursor: pointer;
+      }
+      .pj-row:last-child {
+        border-bottom: none;
+      }
+      .pj-row:hover {
+        background: var(--surf2);
+      }
+      .pj-row.active {
+        background: #eff6ff;
+      }
+      .pj-name-inp {
+        flex: 1;
+        font-size: 12px;
+        padding: 3px 6px;
+        border: 1px solid var(--bord2);
+        border-radius: 4px;
+        background: var(--surf);
+        color: var(--txt);
+        font-family: inherit;
+        outline: none;
+      }
+      .pj-del {
+        color: var(--err);
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 3px;
+        opacity: 0.5;
+        font-size: 12px;
+      }
+      .pj-del:hover {
+        background: #fee2e2;
+        opacity: 1;
+      }
+      /* ── PRINT ── */
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .app-head,
+        .tabs,
+        .legend-bar,
+        .del-btn,
+        .td-h {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
+        .pane {
+          display: block !important;
+          padding: 0;
+        }
+        .gantt-scroll {
+          overflow: visible;
+          border: none;
+        }
+        .bar {
+          box-shadow: none !important;
+        }
+        td.td-n,
+        td.td-nm,
+        th.th-n,
+        th.th-nm {
+          position: static !important;
+        }
+        @page {
+          size: A3 landscape;
+          margin: 8mm;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-head">
+      <div class="proj-block">
+        <select
+          class="proj-sel"
+          id="proj-sel"
+          onchange="switchProject(this.value)"
+        ></select>
+        <span class="proj-dates" id="head-dates"></span>
+      </div>
+      <button
+        class="btn btn-icon"
+        onclick="openProjManager()"
+        title="Управління проєктами"
+      >
+        📁
+      </button>
+      <button class="btn btn-icon" onclick="openProj()" title="Налаштування">
+        ⚙
+      </button>
+      <button class="btn btn-icon" onclick="openCatEditor()" title="Категорії">
+        🎨
+      </button>
+      <button
+        class="btn btn-tog"
+        id="btn-ct"
+        onclick="toggleContr()"
+        title="Показати/сховати підрядника"
+      >
+        👷 Підрядник
+      </button>
+      <button class="btn btn-tog" id="btn-past" onclick="toggleHidePast()">
+        ◀ Минуле
+      </button>
+      <button class="btn btn-acc" onclick="openAdd()">+ Робота</button>
+      <button class="btn" onclick="window.print()">🖨</button>
+      <button class="btn" onclick="exportXLSX()">↓ Excel</button>
+      <button class="btn" onclick="exportJSON()">↓ JSON</button>
+      <label class="btn" style="cursor: pointer"
+        >↑ Імпорт<input
+          type="file"
+          accept=".json"
+          style="display: none"
+          onchange="importJSON(event)"
+      /></label>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('gantt', this)">📅 Графік</div>
+      <div class="tab" onclick="switchTab('finance', this)">💰 Фінанси</div>
+      <div class="tab" onclick="switchTab('charts', this)">📊 Аналітика</div>
+    </div>
+
+    <div class="legend-bar" id="legend"></div>
+
+    <div id="pane-gantt" class="pane active">
+      <div class="gantt-scroll"><div id="gtbl-wrap"></div></div>
+    </div>
+
+    <div id="pane-finance" class="pane">
+      <div class="fin-filters" id="fin-filters"></div>
+      <div class="fin-summary" id="fin-summary"></div>
+      <table class="fin-tbl" id="fin-tbl"></table>
+    </div>
+
+    <div id="pane-charts" class="pane">
+      <div class="chart-builder">
+        <h4>Власний графік</h4>
+        <div class="cb-row">
+          <div class="cb-group">
+            <label>Тип</label>
+            <select id="cb-type">
+              <option value="bar">Bar</option>
+              <option value="horizontalBar">Bar (горизонт.)</option>
+              <option value="line">Line</option>
+              <option value="pie">Pie</option>
+              <option value="doughnut">Doughnut</option>
+            </select>
+          </div>
+          <div class="cb-group">
+            <label>Вісь X / групування</label>
+            <select id="cb-x">
+              <option value="cat">Категорія</option>
+              <option value="contr">Підрядник</option>
+              <option value="status">Статус</option>
+              <option value="month">Місяць</option>
+              <option value="task">Робота (топ 15)</option>
+            </select>
+          </div>
+          <div class="cb-group">
+            <label>Показник Y</label>
+            <select id="cb-y">
+              <option value="count">Кількість робіт</option>
+              <option value="budget">Бюджет (грн)</option>
+              <option value="spent">Витрачено (грн)</option>
+              <option value="rest">Залишок (грн)</option>
+              <option value="prog">Середнє виконання (%)</option>
+              <option value="dur">Тривалість (тиж.)</option>
+            </select>
+          </div>
+          <div class="cb-group">
+            <label>Категорія</label
+            ><select id="cb-fcat">
+              <option value="">Усі</option>
+            </select>
+          </div>
+          <div class="cb-group">
+            <label>Статус</label>
+            <select id="cb-fstat">
+              <option value="">Усі</option>
+              <option value="done">Завершено</option>
+              <option value="active">В роботі</option>
+              <option value="pending">Не розпочато</option>
+            </select>
+          </div>
+          <button
+            class="btn btn-acc"
+            onclick="addCustomChart()"
+            style="align-self: flex-end"
+          >
+            + Побудувати
+          </button>
+        </div>
+      </div>
+      <div class="chart-grid" id="chart-grid"></div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div
+      class="overlay"
+      id="modal"
+      style="display: none"
+      onclick="if (event.target === this) closeModal();"
+    >
+      <div class="modal">
+        <h3 id="m-title">Нова робота</h3>
+        <div class="fg">
+          <label>Назва</label
+          ><input id="f-name" placeholder="Введіть назву..." />
+        </div>
+        <div class="fg">
+          <label>Категорія</label>
+          <div class="cat-chips" id="cat-chips"></div>
+        </div>
+        <div class="fg">
+          <label>Підрядник</label
+          ><input id="f-contr" placeholder="необов'язково" />
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>Початок місяць</label
+            ><select id="f-ms"></select>
+          </div>
+          <div class="fg">
+            <label>Тиждень</label
+            ><select id="f-ws">
+              <option value="0">1</option>
+              <option value="1">2</option>
+              <option value="2">3</option>
+              <option value="3">4</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>Кінець місяць</label
+            ><select id="f-me"></select>
+          </div>
+          <div class="fg">
+            <label>Тиждень</label
+            ><select id="f-we">
+              <option value="0">1</option>
+              <option value="1">2</option>
+              <option value="2">3</option>
+              <option value="3">4</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Виконання (%)</label>
+          <div class="prog-row">
+            <input
+              type="range"
+              id="f-prog"
+              min="0"
+              max="100"
+              step="5"
+              value="0"
+              oninput="updProg(this.value)"
+            /><span id="f-prog-lbl">0%</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Загальна вартість (грн)</label
+          ><input
+            id="f-budget"
+            type="number"
+            min="0"
+            step="1000"
+            placeholder="0"
+            oninput="updCalc()"
+          />
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>Витрачено (грн)</label
+            ><input
+              id="f-spent"
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="0"
+              oninput="updCalc()"
+            />
+          </div>
+          <div class="fg">
+            <label>Залишок</label
+            ><input
+              id="f-rest"
+              readonly
+              style="background: var(--surf2); color: var(--txt2)"
+            />
+          </div>
+        </div>
+        <div class="calc-row" id="calc-info" style="margin-bottom: 10px">
+          Заповніть вартість для розрахунку
+        </div>
+        <div class="fg">
+          <label>Залежить від</label>
+          <div class="dep-list" id="dep-list"></div>
+        </div>
+        <div class="warn-box" id="dep-warn"></div>
+        <div class="m-btns">
+          <button class="btn" onclick="closeModal()">Скасувати</button>
+          <button class="btn btn-acc" onclick="saveTask()">Зберегти</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT SETTINGS -->
+    <div
+      class="overlay"
+      id="proj-modal"
+      style="display: none"
+      onclick="if (event.target === this) closeProjModal();"
+    >
+      <div class="modal">
+        <h3>Налаштування проєкту</h3>
+        <div class="fg"><label>Назва</label><input id="p-name" /></div>
+        <div class="row3">
+          <div class="fg">
+            <label>Початок місяць</label
+            ><select id="p-sm"></select>
+          </div>
+          <div class="fg">
+            <label>Рік</label
+            ><input id="p-sy" type="number" min="2020" max="2035" />
+          </div>
+          <div class="fg">
+            <label>Тривалість (міс.)</label
+            ><input id="p-nm" type="number" min="3" max="36" />
+          </div>
+        </div>
+        <div class="m-btns">
+          <button class="btn" onclick="closeProjModal()">Скасувати</button
+          ><button class="btn btn-acc" onclick="saveProjSettings()">
+            Зберегти
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY EDITOR -->
+    <div
+      class="overlay"
+      id="cat-modal"
+      style="display: none"
+      onclick="if (event.target === this) closeCatModal();"
+    >
+      <div class="modal">
+        <h3>Редагування категорій</h3>
+        <div class="cat-editor-list" id="cat-editor-list"></div>
+        <button
+          class="btn btn-acc"
+          style="width: 100%; margin-bottom: 10px"
+          onclick="addCat()"
+        >
+          + Додати категорію
+        </button>
+        <div class="m-btns">
+          <button class="btn" onclick="closeCatModal()">Скасувати</button
+          ><button class="btn btn-acc" onclick="saveCats()">Зберегти</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT MANAGER -->
+    <div
+      class="overlay"
+      id="projmgr-modal"
+      style="display: none"
+      onclick="if (event.target === this) closeProjMgr();"
+    >
+      <div class="modal">
+        <h3>Управління проєктами</h3>
+        <div class="proj-list" id="proj-list-el"></div>
+        <button
+          class="btn btn-acc"
+          style="width: 100%; margin-bottom: 10px"
+          onclick="createProject()"
+        >
+          + Новий проєкт
+        </button>
+        <div style="font-size: 11px; color: var(--txt3)">
+          Кожен проєкт зберігається окремо у браузері. Перейдіть між проєктами
+          через вибір зверху.
+        </div>
+        <div class="m-btns">
+          <button class="btn btn-acc" onclick="closeProjMgr()">Закрити</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHART EDIT MODAL -->
+    <div
+      class="overlay"
+      id="chart-edit-modal"
+      style="display: none"
+      onclick="if (event.target === this) closeChartEdit();"
+    >
+      <div class="modal">
+        <h3>Редагувати графік</h3>
+        <input type="hidden" id="ce-id" />
+        <div class="row2">
+          <div class="fg">
+            <label>Тип</label>
+            <select id="ce-type">
+              <option value="bar">Bar</option>
+              <option value="horizontalBar">Bar (горизонт.)</option>
+              <option value="line">Line</option>
+              <option value="pie">Pie</option>
+              <option value="doughnut">Doughnut</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Вісь X / групування</label>
+            <select id="ce-x">
+              <option value="cat">Категорія</option>
+              <option value="contr">Підрядник</option>
+              <option value="status">Статус</option>
+              <option value="month">Місяць</option>
+              <option value="task">Робота (топ 15)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>Показник Y</label>
+            <select id="ce-y">
+              <option value="count">Кількість робіт</option>
+              <option value="budget">Бюджет (грн)</option>
+              <option value="spent">Витрачено (грн)</option>
+              <option value="rest">Залишок (грн)</option>
+              <option value="prog">Виконання (%)</option>
+              <option value="dur">Тривалість (тиж.)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Категорія</label
+            ><select id="ce-fcat">
+              <option value="">Усі</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Статус</label>
+          <select id="ce-fstat">
+            <option value="">Усі</option>
+            <option value="done">Завершено</option>
+            <option value="active">В роботі</option>
+            <option value="pending">Не розпочато</option>
+          </select>
+        </div>
+        <div class="m-btns">
+          <button class="btn" onclick="closeChartEdit()">Скасувати</button>
+          <button class="btn btn-acc" onclick="applyChartEdit()">
+            Оновити
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+      const MN = [
+        "Січень",
+        "Лютий",
+        "Березень",
+        "Квітень",
+        "Травень",
+        "Червень",
+        "Липень",
+        "Серпень",
+        "Вересень",
+        "Жовтень",
+        "Листопад",
+        "Грудень",
+      ];
+      const DEF_CATS = [
+        { name: "Підготовчі/земляні", color: "#2e7d32" },
+        { name: "Конструктив", color: "#1565a0" },
+        { name: "Інженерні мережі", color: "#b84c0a" },
+        { name: "Протипожежні", color: "#b71c1c" },
+        { name: "Зовнішні/благоустрій", color: "#5a5a5a" },
+        { name: "Оздоблення/введення", color: "#8a6200" },
+        { name: "Додані роботи", color: "#006494" },
+      ];
+      const DEF_PROJ = { name: "Будівельний об'єкт", sm: 6, sy: 2025, nm: 16 };
+      const DEF_TASKS = [
+        {
+          n: 1,
+          name: "Підготовчі роботи",
+          cat: 0,
+          ms: 0,
+          ws: 0,
+          me: 0,
+          we: 3,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [],
+        },
+        {
+          n: 2,
+          name: "Мульчування",
+          cat: 0,
+          ms: 0,
+          ws: 0,
+          me: 0,
+          we: 1,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [1],
+        },
+        {
+          n: 3,
+          name: "Зняття рослинного шару",
+          cat: 0,
+          ms: 0,
+          ws: 1,
+          me: 1,
+          we: 0,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [2],
+        },
+        {
+          n: 4,
+          name: "Земляні роботи",
+          cat: 0,
+          ms: 0,
+          ws: 2,
+          me: 2,
+          we: 3,
+          contr: "",
+          prog: 80,
+          budget: 0,
+          spent: 0,
+          deps: [3],
+        },
+        {
+          n: 5,
+          name: "Влаштування паль",
+          cat: 0,
+          ms: 1,
+          ws: 0,
+          me: 3,
+          we: 3,
+          contr: "",
+          prog: 60,
+          budget: 0,
+          spent: 0,
+          deps: [4],
+        },
+        {
+          n: 6,
+          name: "Монолітні роботи (АПК)",
+          cat: 1,
+          ms: 2,
+          ws: 0,
+          me: 6,
+          we: 3,
+          contr: "",
+          prog: 40,
+          budget: 0,
+          spent: 0,
+          deps: [5],
+        },
+        {
+          n: 7,
+          name: "Вигот./монтаж метал. констр.",
+          cat: 1,
+          ms: 4,
+          ws: 0,
+          me: 8,
+          we: 3,
+          contr: "",
+          prog: 10,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 8,
+          name: "Монтаж сенд. панелей",
+          cat: 1,
+          ms: 6,
+          ws: 0,
+          me: 9,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [7],
+        },
+        {
+          n: 9,
+          name: "Влаштування покрівлі",
+          cat: 1,
+          ms: 7,
+          ws: 2,
+          me: 9,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 10,
+          name: "Монтаж доклевелерів",
+          cat: 1,
+          ms: 10,
+          ws: 0,
+          me: 11,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 11,
+          name: "Монтаж воріт",
+          cat: 1,
+          ms: 9,
+          ws: 2,
+          me: 10,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 12,
+          name: "Монтаж вікон та дверей",
+          cat: 1,
+          ms: 8,
+          ws: 0,
+          me: 10,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 13,
+          name: "Монтаж докшелтерів",
+          cat: 1,
+          ms: 10,
+          ws: 1,
+          me: 11,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [10],
+        },
+        {
+          n: 14,
+          name: "Монтаж промпідлоги",
+          cat: 2,
+          ms: 8,
+          ws: 0,
+          me: 12,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 15,
+          name: "Монтаж пожеж. системи",
+          cat: 3,
+          ms: 9,
+          ws: 0,
+          me: 12,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 16,
+          name: "СКС / СВС",
+          cat: 2,
+          ms: 9,
+          ws: 0,
+          me: 12,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 17,
+          name: "Електромонтажні роботи",
+          cat: 2,
+          ms: 8,
+          ws: 0,
+          me: 12,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 18,
+          name: "Опалення / вентиляція",
+          cat: 2,
+          ms: 8,
+          ws: 2,
+          me: 12,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 19,
+          name: "Сантехніка",
+          cat: 2,
+          ms: 8,
+          ws: 0,
+          me: 11,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 20,
+          name: "Котельня + госп. буд.",
+          cat: 2,
+          ms: 7,
+          ws: 0,
+          me: 11,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 21,
+          name: "Кондиціонери",
+          cat: 2,
+          ms: 11,
+          ws: 0,
+          me: 12,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 22,
+          name: "Оздоблення АПК",
+          cat: 5,
+          ms: 10,
+          ws: 0,
+          me: 13,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6, 14, 17],
+        },
+        {
+          n: 23,
+          name: "Благоустрій",
+          cat: 4,
+          ms: 11,
+          ws: 0,
+          me: 14,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [4],
+        },
+        {
+          n: 24,
+          name: "Внутрішні вікна / двері",
+          cat: 5,
+          ms: 10,
+          ws: 0,
+          me: 12,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 25,
+          name: "Протипожежні вікна / двері",
+          cat: 3,
+          ms: 9,
+          ws: 2,
+          me: 11,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [8],
+        },
+        {
+          n: 26,
+          name: "Зовнішнє освітлення",
+          cat: 4,
+          ms: 12,
+          ws: 0,
+          me: 13,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [23],
+        },
+        {
+          n: 27,
+          name: "Монтаж КК",
+          cat: 2,
+          ms: 8,
+          ws: 0,
+          me: 10,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 28,
+          name: "Зовнішнє ВК",
+          cat: 4,
+          ms: 0,
+          ws: 0,
+          me: 2,
+          we: 3,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [],
+        },
+        {
+          n: 29,
+          name: "Зовнішні ЕТР",
+          cat: 4,
+          ms: 1,
+          ws: 0,
+          me: 4,
+          we: 3,
+          contr: "",
+          prog: 60,
+          budget: 0,
+          spent: 0,
+          deps: [3],
+        },
+        {
+          n: 30,
+          name: "Шлагбауми",
+          cat: 4,
+          ms: 13,
+          ws: 0,
+          me: 14,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [23],
+        },
+        {
+          n: 31,
+          name: "Заїзди – виїзди",
+          cat: 4,
+          ms: 11,
+          ws: 0,
+          me: 13,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [4],
+        },
+        {
+          n: 32,
+          name: "Огорожа",
+          cat: 4,
+          ms: 10,
+          ws: 0,
+          me: 12,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [4],
+        },
+        {
+          n: 33,
+          name: "ПРУ",
+          cat: 4,
+          ms: 12,
+          ws: 0,
+          me: 14,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 34,
+          name: "КПП",
+          cat: 4,
+          ms: 12,
+          ws: 0,
+          me: 14,
+          we: 1,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [6],
+        },
+        {
+          n: 35,
+          name: "СС1 – СС2",
+          cat: 1,
+          ms: 0,
+          ws: 0,
+          me: 15,
+          we: 3,
+          contr: "",
+          prog: 15,
+          budget: 0,
+          spent: 0,
+          deps: [],
+        },
+        {
+          n: 36,
+          name: "Геодезичні роботи",
+          cat: 6,
+          ms: 0,
+          ws: 0,
+          me: 0,
+          we: 1,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [],
+        },
+        {
+          n: 37,
+          name: "Тимчасові споруди",
+          cat: 6,
+          ms: 0,
+          ws: 0,
+          me: 1,
+          we: 3,
+          contr: "",
+          prog: 100,
+          budget: 0,
+          spent: 0,
+          deps: [36],
+        },
+        {
+          n: 38,
+          name: "Зовн. мережі водопостачання",
+          cat: 6,
+          ms: 1,
+          ws: 0,
+          me: 4,
+          we: 3,
+          contr: "",
+          prog: 50,
+          budget: 0,
+          spent: 0,
+          deps: [3],
+        },
+        {
+          n: 39,
+          name: "Зовнішня каналізація",
+          cat: 6,
+          ms: 1,
+          ws: 0,
+          me: 3,
+          we: 3,
+          contr: "",
+          prog: 60,
+          budget: 0,
+          spent: 0,
+          deps: [3],
+        },
+        {
+          n: 40,
+          name: "Трансформаторна підстанція",
+          cat: 6,
+          ms: 6,
+          ws: 0,
+          me: 9,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [4],
+        },
+        {
+          n: 41,
+          name: "Тверде покриття",
+          cat: 6,
+          ms: 11,
+          ws: 0,
+          me: 13,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [4, 23],
+        },
+        {
+          n: 42,
+          name: "Пусконалагоджувальні роботи",
+          cat: 6,
+          ms: 13,
+          ws: 0,
+          me: 15,
+          we: 3,
+          contr: "",
+          prog: 0,
+          budget: 0,
+          spent: 0,
+          deps: [15, 16, 17, 18, 19, 20, 21, 22],
+        },
+      ];
+
+      // ── STATE ─────────────────────────────────────────────────────────────────
+      let allProjects = {};
+      let currentId = "";
+      let tasks = [],
+        proj = {},
+        cats = [];
+      let hiddenCats = new Set(),
+        showContr = false,
+        hidePast = false;
+      let editIdx = null,
+        selCat = 0,
+        nextN = 43;
+      let drag = null,
+        rowDrag = null;
+      let finSort = { col: "n", dir: 1 };
+      let finFilters = {
+        cat: "",
+        stat: "",
+        contr: "",
+        budgetMin: "",
+        budgetMax: "",
+        onlyBudget: false,
+      };
+      let chartInstances = [],
+        customCharts = [];
+      let tempCats = [];
+
+      // ── STORAGE ───────────────────────────────────────────────────────────────
+      const SK = "gantt_pro_v3";
+      function saveAll() {
+        if (!currentId) return;
+        allProjects[currentId] = {
+          proj: { ...proj },
+          cats: [...cats.map((c) => ({ ...c }))],
+          tasks: [...tasks.map((t) => ({ ...t }))],
+          nextN,
+        };
+        try {
+          localStorage.setItem(SK, JSON.stringify({ allProjects, currentId }));
+        } catch (e) {}
+      }
+      function loadAll() {
+        try {
+          const d = JSON.parse(localStorage.getItem(SK));
+          if (d && d.allProjects && Object.keys(d.allProjects).length) {
+            allProjects = d.allProjects;
+            currentId = d.currentId || Object.keys(d.allProjects)[0];
+          } else initDefaultProject();
+        } catch (e) {
+          initDefaultProject();
+        }
+        loadCurrent();
+      }
+      function initDefaultProject() {
+        const id = "p_" + Date.now();
+        allProjects = {
+          [id]: {
+            proj: { ...DEF_PROJ },
+            cats: DEF_CATS.map((c) => ({ ...c })),
+            tasks: DEF_TASKS.map((t) => ({ ...t })),
+            nextN: 43,
+          },
+        };
+        currentId = id;
+      }
+      function loadCurrent() {
+        const p = allProjects[currentId];
+        if (!p) return;
+        proj = { ...p.proj };
+        cats = [...p.cats.map((c) => ({ ...c }))];
+        tasks = [...p.tasks.map((t) => ({ ...t }))];
+        nextN = p.nextN || Math.max(...tasks.map((t) => t.n)) + 1;
+      }
+      function switchProject(id) {
+        saveAll();
+        currentId = id;
+        loadCurrent();
+        hiddenCats = new Set();
+        render();
+        updateProjSel();
+      }
+
+      // ── UTILS ─────────────────────────────────────────────────────────────────
+      function TW() {
+        return proj.nm * 4;
+      }
+      function getML() {
+        const r = [];
+        for (let i = 0; i < proj.nm; i++) {
+          const m = (proj.sm + i) % 12,
+            y = proj.sy + Math.floor((proj.sm + i) / 12);
+          r.push({ name: MN[m], m, y });
+        }
+        return r;
+      }
+      function todayWk() {
+        const now = new Date();
+        const mDiff =
+          (now.getFullYear() - proj.sy) * 12 + (now.getMonth() - proj.sm);
+        if (mDiff < 0 || mDiff >= proj.nm) return -1;
+        const wInM = Math.min(3, Math.floor((now.getDate() - 1) / 7));
+        return mDiff * 4 + wInM;
+      }
+      function visStart() {
+        if (!hidePast) return 0;
+        const tw = todayWk();
+        if (tw < 0) return 0;
+        return Math.floor(tw / 4) * 4;
+      }
+      function dur(t) {
+        return t.me * 4 + t.we - t.ms * 4 - t.ws + 1;
+      }
+      function remWk(t) {
+        return Math.max(0, t.me * 4 + t.we - todayWk());
+      }
+      function fmtM(v) {
+        if (v === null || v === undefined || v === "") return "—";
+        return new Intl.NumberFormat("uk-UA", {
+          maximumFractionDigits: 0,
+        }).format(v);
+      }
+      function CC(i) {
+        return (cats[i] || { color: "#888" }).color;
+      }
+      function CN(i) {
+        return (cats[i] || { name: "?" }).name;
+      }
+      function checkDeps(t) {
+        const w = [];
+        (t.deps || []).forEach((dn) => {
+          const d = tasks.find((x) => x.n === dn);
+          if (!d) return;
+          const de = d.me * 4 + d.we,
+            ts2 = t.ms * 4 + t.ws;
+          if (de > ts2)
+            w.push(`"${d.name}" закінчується після початку (${de - ts2} тиж.)`);
+          else if (d.prog < 100)
+            w.push(`"${d.name}" не завершена (${d.prog}%)`);
+        });
+        return w;
+      }
+      function uniqContractors() {
+        return [...new Set(tasks.map((t) => t.contr || "").filter(Boolean))];
+      }
+
+      // ── RENDER ────────────────────────────────────────────────────────────────
+      function render() {
+        updateHeader();
+        renderLegend();
+        renderTable();
+        updateProjSel();
+      }
+      function updateHeader() {
+        const ml = getML();
+        document.getElementById("head-dates").textContent = ml.length
+          ? `${ml[0].name} ${ml[0].y} — ${ml[ml.length - 1].name} ${ml[ml.length - 1].y}  ·  ${proj.nm} міс.`
+          : "";
+      }
+      function updateProjSel() {
+        const sel = document.getElementById("proj-sel");
+        sel.innerHTML = Object.entries(allProjects)
+          .map(
+            ([id, p]) =>
+              `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}</option>`,
+          )
+          .join("");
+      }
+      function renderLegend() {
+        document.getElementById("legend").innerHTML =
+          cats
+            .map(
+              (c, i) =>
+                `<div class="leg${hiddenCats.has(i) ? " off" : ""}" onclick="toggleCat(${i})"><div class="leg-dot" style="background:${c.color}"></div>${c.name}</div>`,
+            )
+            .join("") +
+          `<span style="font-size:10px;color:var(--txt3);margin-left:auto">Клік — показати/сховати</span>`;
+      }
+
+      function renderTable() {
+        const ml = getML(),
+          tw = todayWk(),
+          vs = visStart();
+        const visMonthStart = Math.floor(vs / 4);
+        let h = `<table class="gt" id="gtbl"><thead><tr>
+    <th class="th-h" rowspan="2" title="Перетягніть для зміни порядку">⠿</th>
+    <th class="th-n" rowspan="2">#</th>
+    <th class="th-nm" rowspan="2">Вид робіт</th>
+    ${showContr ? `<th class="th-ct" rowspan="2">Підрядник</th>` : ""}`;
+        ml.forEach((_, mi) => {
+          if (mi < visMonthStart) return;
+          h += `<th colspan="4" class="th-mo">${ml[mi].name} ${ml[mi].y}</th>`;
+        });
+        h += `</tr><tr>`;
+        for (let i = vs; i < TW(); i++)
+          h += `<th class="th-wk${i % 4 === 0 ? " ms" : ""}">w${(i % 4) + 1}</th>`;
+        h += `</tr></thead><tbody>`;
+
+        tasks
+          .filter((t) => !hiddenCats.has(t.cat))
+          .forEach((t) => {
+            const ti = tasks.indexOf(t);
+            const cs = t.ms * 4 + t.ws,
+              ce = t.me * 4 + t.we;
+            if (ce < vs || cs >= TW()) return;
+            const ecs = Math.max(cs, vs);
+            const bW = (ce - ecs + 1) * 25 - 2,
+              col = CC(t.cat);
+            const warns = checkDeps(t);
+            const progW = Math.round((t.prog * Math.max(0, bW - 12)) / 100);
+            h += `<tr id="tr${ti}">
+      <td class="td-h" data-ti="${ti}" title="Перетягніть для зміни порядку">⠿</td>
+      <td class="td-n">${t.n}</td>
+      <td class="td-nm" onclick="openEdit(${ti})" title="${t.name}${warns.length ? " ⚠ " + warns.join("; ") : ""}">
+        <div class="nm-inner">
+          ${warns.length ? `<span class="dep-ic" title="${warns.join("\n")}">⚠️</span>` : ""}
+          <span style="overflow:hidden;text-overflow:ellipsis">${t.name}</span>
+          <span class="del-btn" onclick="event.stopPropagation();delTask(${ti})">✕</span>
+        </div>
+      </td>
+      ${showContr ? `<td class="td-ct" title="${t.contr || ""}">${t.contr || ""}</td>` : ""}`;
+            for (let ci = vs; ci < TW(); ci++) {
+              h += `<td class="td-c${ci % 4 === 0 ? " ms" : ""}${ci === tw ? " today-col" : ""}" data-ti="${ti}" data-ci="${ci}">`;
+              if (ci === tw) h += `<div class="today-line"></div>`;
+              if (ci === ecs) {
+                h += `<div class="bar" id="bar${ti}" data-ti="${ti}" style="left:1px;width:${bW}px;background:${col}">
+          <div class="bh" data-ti="${ti}" data-side="L"><svg width="4" height="8" viewBox="0 0 4 8"><line x1="1" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/><line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/></svg></div>
+          ${t.prog > 0 ? `<div class="prog-fill" style="width:${progW}px"></div>` : ""}
+          <span class="bl">${t.prog > 0 ? t.prog + "%" : ""}</span>
+          <div class="bh" data-ti="${ti}" data-side="R"><svg width="4" height="8" viewBox="0 0 4 8"><line x1="1" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/><line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/></svg></div>
+        </div>`;
+              }
+              h += `</td>`;
+            }
+            h += `</tr>`;
+          });
+        h += `</tbody></table>`;
+        document.getElementById("gtbl-wrap").innerHTML = h;
+        attachDrag();
+      }
+
+      // ── BAR DRAG ─────────────────────────────────────────────────────────────
+      function attachDrag() {
+        const tbl = document.getElementById("gtbl");
+        if (!tbl) return;
+        tbl.addEventListener("mousedown", (e) => {
+          const handle = e.target.closest(".td-h");
+          const bh = e.target.closest(".bh");
+          const bar = e.target.closest(".bar");
+          if (handle && !bh && !bar) {
+            e.preventDefault();
+            const ti = parseInt(handle.dataset.ti);
+            rowDrag = { fromTi: ti, toTi: ti };
+            document.getElementById("tr" + ti)?.classList.add("row-dragging");
+            return;
+          }
+          if (!bh && !bar) return;
+          e.preventDefault();
+          const ti = parseInt((bh || bar).dataset.ti),
+            t = tasks[ti];
+          drag = {
+            ti,
+            mode: bh ? (bh.dataset.side === "L" ? "L" : "R") : "M",
+            sx: e.clientX,
+            ocs: t.ms * 4 + t.ws,
+            oce: t.me * 4 + t.we,
+            last: null,
+          };
+          document.getElementById("bar" + ti)?.classList.add("dragging");
+        });
+      }
+
+      document.addEventListener("mousemove", (e) => {
+        if (rowDrag) {
+          let best = null,
+            bd = 9999;
+          document.querySelectorAll("#gtbl tbody tr").forEach((tr) => {
+            const rect = tr.getBoundingClientRect(),
+              mid = rect.top + rect.height / 2,
+              d = Math.abs(e.clientY - mid);
+            if (d < bd) {
+              bd = d;
+              best = tr;
+            }
+          });
+          if (best) {
+            const toTi = parseInt(best.id.replace("tr", ""));
+            document
+              .querySelectorAll("#gtbl tbody tr")
+              .forEach((t) => t.classList.remove("row-drag-over"));
+            if (!isNaN(toTi) && toTi !== rowDrag.fromTi) {
+              best.classList.add("row-drag-over");
+              rowDrag.toTi = toTi;
+            } else rowDrag.toTi = rowDrag.fromTi;
+          }
+          return;
+        }
+        if (!drag) return;
+        const d = Math.round((e.clientX - drag.sx) / 25);
+        if (d === drag.last) return;
+        drag.last = d;
+        const t = tasks[drag.ti],
+          TW2 = TW();
+        if (drag.mode === "M") {
+          const len = drag.oce - drag.ocs,
+            ns = Math.max(0, Math.min(TW2 - len - 1, drag.ocs + d));
+          t.ms = Math.floor(ns / 4);
+          t.ws = ns % 4;
+          t.me = Math.floor((ns + len) / 4);
+          t.we = (ns + len) % 4;
+        } else if (drag.mode === "L") {
+          const ns = Math.max(0, Math.min(drag.oce, drag.ocs + d));
+          t.ms = Math.floor(ns / 4);
+          t.ws = ns % 4;
+        } else {
+          const ne = Math.max(drag.ocs, Math.min(TW2 - 1, drag.oce + d));
+          t.me = Math.floor(ne / 4);
+          t.we = ne % 4;
+        }
+        updateBarDOM(drag.ti);
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (rowDrag) {
+          document
+            .querySelectorAll("#gtbl tbody tr")
+            .forEach((t) =>
+              t.classList.remove("row-dragging", "row-drag-over"),
+            );
+          if (rowDrag.fromTi !== rowDrag.toTi) {
+            // find actual array indices from ti values
+            const fi = tasks.findIndex((_, i) => i === rowDrag.fromTi);
+            const ti2 = tasks.findIndex((_, i) => i === rowDrag.toTi);
+            if (fi >= 0 && ti2 >= 0) {
+              const task = tasks.splice(fi, 1)[0];
+              tasks.splice(ti2, 0, task);
+            }
+            saveAll();
+            renderTable();
+          }
+          rowDrag = null;
+          return;
+        }
+        if (drag) {
+          document
+            .getElementById("bar" + drag.ti)
+            ?.classList.remove("dragging");
+          drag = null;
+          saveAll();
+        }
+      });
+
+      function updateBarDOM(ti) {
+        const t = tasks[ti],
+          vs = visStart(),
+          ecs = Math.max(t.ms * 4 + t.ws, vs),
+          ce = t.me * 4 + t.we;
+        if (ce < vs) {
+          document.getElementById("bar" + ti)?.remove();
+          return;
+        }
+        const bW = (ce - ecs + 1) * 25 - 2,
+          col = CC(t.cat),
+          progW = Math.round((t.prog * Math.max(0, bW - 12)) / 100);
+        document.getElementById("bar" + ti)?.remove();
+        const td = document.querySelector(
+          `td[data-ti="${ti}"][data-ci="${ecs}"]`,
+        );
+        if (!td) {
+          renderTable();
+          return;
+        }
+        const el = document.createElement("div");
+        el.className = "bar dragging";
+        el.id = "bar" + ti;
+        el.dataset.ti = ti;
+        el.style.cssText = `left:1px;width:${bW}px;background:${col}`;
+        el.innerHTML = `<div class="bh" data-ti="${ti}" data-side="L"><svg width="4" height="8" viewBox="0 0 4 8"><line x1="1" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/><line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/></svg></div>
+    ${t.prog > 0 ? `<div class="prog-fill" style="width:${progW}px"></div>` : ""}
+    <span class="bl">${t.prog > 0 ? t.prog + "%" : ""}</span>
+    <div class="bh" data-ti="${ti}" data-side="R"><svg width="4" height="8" viewBox="0 0 4 8"><line x1="1" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/><line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.6)" stroke-width="1"/></svg></div>`;
+        td.appendChild(el);
+      }
+
+      // ── TOGGLES ───────────────────────────────────────────────────────────────
+      function toggleContr() {
+        showContr = !showContr;
+        document.getElementById("btn-ct").classList.toggle("on", showContr);
+        renderTable();
+      }
+      function toggleHidePast() {
+        hidePast = !hidePast;
+        document.getElementById("btn-past").classList.toggle("on", hidePast);
+        renderTable();
+      }
+      function toggleCat(i) {
+        hiddenCats.has(i) ? hiddenCats.delete(i) : hiddenCats.add(i);
+        renderLegend();
+        // refresh all active panes
+        renderTable();
+        const activeTab =
+          document.querySelector(".tab.active")?.textContent || "";
+        if (activeTab.includes("Фінанси")) renderFinance();
+        if (activeTab.includes("Аналітика")) renderAutoCharts();
+      }
+
+      // ── FINANCE ───────────────────────────────────────────────────────────────
+      function renderFinFilters() {
+        const contrs = uniqContractors();
+        document.getElementById("fin-filters").innerHTML = `
+    <div class="ff-group"><label>Категорія</label>
+      <select onchange="finFilters.cat=this.value;renderFinance()">
+        <option value="">Усі категорії</option>
+        ${cats.map((c, i) => `<option value="${i}"${finFilters.cat == i ? "selected" : ""}>${c.name}</option>`).join("")}
+      </select></div>
+    <div class="ff-group"><label>Статус</label>
+      <select onchange="finFilters.stat=this.value;renderFinance()">
+        <option value="">Усі</option>
+        <option value="done"${finFilters.stat === "done" ? "selected" : ""}>Завершено (100%)</option>
+        <option value="active"${finFilters.stat === "active" ? "selected" : ""}>В роботі</option>
+        <option value="pending"${finFilters.stat === "pending" ? "selected" : ""}>Не розпочато</option>
+        <option value="warn"${finFilters.stat === "warn" ? "selected" : ""}>З порушеннями</option>
+      </select></div>
+    <div class="ff-group"><label>Підрядник</label>
+      <select onchange="finFilters.contr=this.value;renderFinance()">
+        <option value="">Усі</option>
+        ${contrs.map((c) => `<option value="${c}"${finFilters.contr === c ? "selected" : ""}>${c}</option>`).join("")}
+      </select></div>
+    <div class="ff-group"><label>Бюджет від (грн)</label><input type="number" min="0" step="10000" value="${finFilters.budgetMin}" placeholder="0" onchange="finFilters.budgetMin=this.value;renderFinance()" style="width:110px"></div>
+    <div class="ff-group"><label>Бюджет до (грн)</label><input type="number" min="0" step="10000" value="${finFilters.budgetMax}" placeholder="∞" onchange="finFilters.budgetMax=this.value;renderFinance()" style="width:110px"></div>
+    <div class="ff-group" style="justify-content:flex-end">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--txt2);text-transform:none;letter-spacing:0">
+        <input type="checkbox" ${finFilters.onlyBudget ? "checked" : ""} onchange="finFilters.onlyBudget=this.checked;renderFinance()"> Тільки з бюджетом
+      </label>
+      <button class="btn btn-sm" onclick="finFilters={cat:'',stat:'',contr:'',budgetMin:'',budgetMax:'',onlyBudget:false};renderFinFilters();renderFinance()">Скинути</button>
+    </div>`;
+      }
+
+      function applyFinFilters(t) {
+        if (hiddenCats.has(t.cat)) return false;
+        if (finFilters.cat !== "" && t.cat !== +finFilters.cat) return false;
+        if (finFilters.stat === "done" && t.prog < 100) return false;
+        if (finFilters.stat === "active" && (t.prog === 0 || t.prog === 100))
+          return false;
+        if (finFilters.stat === "pending" && t.prog !== 0) return false;
+        if (finFilters.stat === "warn" && !checkDeps(t).length) return false;
+        if (finFilters.contr && (t.contr || "") !== finFilters.contr)
+          return false;
+        if (
+          finFilters.budgetMin !== "" &&
+          (+t.budget || 0) < +finFilters.budgetMin
+        )
+          return false;
+        if (
+          finFilters.budgetMax !== "" &&
+          (+t.budget || 0) > +finFilters.budgetMax
+        )
+          return false;
+        if (finFilters.onlyBudget && !(+t.budget > 0)) return false;
+        return true;
+      }
+
+      function renderFinance() {
+        const tb = tasks.reduce((s, t) => s + (+t.budget || 0), 0);
+        const ts2 = tasks.reduce((s, t) => s + (+t.spent || 0), 0);
+        const tr = tb - ts2,
+          op = tb > 0 ? Math.round((ts2 / tb) * 100) : 0;
+        document.getElementById("fin-summary").innerHTML = `
+    <div class="fc"><div class="lbl">Загальний бюджет</div><div class="val">${fmtM(tb)}</div><div class="sub">грн</div></div>
+    <div class="fc"><div class="lbl">Витрачено</div><div class="val" style="color:${ts2 > tb && tb > 0 ? "var(--err)" : "var(--ok)"}">${fmtM(ts2)}</div><div class="sub">${op}%</div></div>
+    <div class="fc"><div class="lbl">Залишок</div><div class="val" style="color:${tr < 0 ? "var(--err)" : "inherit"}">${fmtM(tr)}</div><div class="sub">грн</div></div>
+    <div class="fc"><div class="lbl">Робіт (всього)</div><div class="val">${tasks.length}</div><div class="sub">з бюджетом: ${tasks.filter((t) => t.budget > 0).length}</div></div>`;
+
+        const cols = [
+          { k: "n", l: "#" },
+          { k: "name", l: "Назва" },
+          { k: "cat", l: "Кат." },
+          { k: "contr", l: "Підрядник" },
+          { k: "dur", l: "Тиж." },
+          { k: "budget", l: "Бюджет" },
+          { k: "spent", l: "Витрачено" },
+          { k: "rest", l: "Залишок" },
+          { k: "pct", l: "Освоєно" },
+          { k: "rate", l: "грн/тиж" },
+          { k: "prog", l: "Виконання" },
+        ];
+        const ft = tasks.filter(applyFinFilters).map((t) => ({
+          ...t,
+          dur: dur(t),
+          rest: (+t.budget || 0) - (+t.spent || 0),
+          pct: t.budget > 0 ? Math.round((t.spent / t.budget) * 100) : 0,
+          rate: (() => {
+            const rw = remWk(t),
+              r = (+t.budget || 0) - (+t.spent || 0);
+            return rw > 0 ? Math.round(r / rw) : 0;
+          })(),
+        }));
+        ft.sort((a, b) => {
+          let av = a[finSort.col],
+            bv = b[finSort.col];
+          return typeof av === "string"
+            ? finSort.dir * av.localeCompare(bv, "uk")
+            : finSort.dir * (av - bv);
+        });
+
+        const thead = cols
+          .map(
+            (c) =>
+              `<th onclick="sortFin('${c.k}')" class="${finSort.col === c.k ? (finSort.dir === 1 ? "asc" : "desc") : ""}">${c.l}<span class="sa"></span></th>`,
+          )
+          .join("");
+        const rows = ft
+          .map((t) => {
+            const warns = checkDeps(t),
+              bc =
+                t.pct > 100
+                  ? "var(--err)"
+                  : t.pct > 80
+                    ? "var(--warn)"
+                    : "var(--ok)";
+            return `<tr>
+      <td>${t.n}</td><td>${t.name}${warns.length ? ` <span title="${warns.join("\n")}" style="cursor:help">⚠️</span>` : ""}</td>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${CC(t.cat)};vertical-align:middle;margin-right:3px"></span>${CN(t.cat)}</td>
+      <td>${t.contr || "—"}</td><td class="nr">${t.dur}</td>
+      <td class="nr">${fmtM(t.budget)}</td><td class="nr">${fmtM(t.spent)}</td>
+      <td class="nr" style="color:${t.rest < 0 ? "var(--err)" : ""}">${fmtM(t.rest)}</td>
+      <td><div class="pb"><div class="pb-f" style="width:${Math.min(100, t.pct)}%;background:${bc}"></div></div> <span style="font-size:10px">${t.pct}%</span></td>
+      <td class="nr">${t.rate > 0 ? fmtM(t.rate) : "—"}</td>
+      <td><span class="badge" style="background:${t.prog === 100 ? "var(--ok)" : t.prog > 0 ? "var(--warn)" : "var(--txt3)"}">${t.prog}%</span></td>
+    </tr>`;
+          })
+          .join("");
+        const tot = ft.reduce(
+          (a, t) => ({
+            b: a.b + (+t.budget || 0),
+            s: a.s + (+t.spent || 0),
+            r: a.r + t.rest,
+          }),
+          { b: 0, s: 0, r: 0 },
+        );
+        document.getElementById("fin-tbl").innerHTML =
+          `<thead><tr>${thead}</tr></thead>
+     <tbody>${rows || `<tr><td colspan="11" style="text-align:center;padding:18px;color:var(--txt3)">Немає робіт за фільтрами</td></tr>`}</tbody>
+     <tfoot><tr class="ttl"><td colspan="5">Разом (відфільтровано)</td><td class="nr">${fmtM(tot.b)}</td><td class="nr">${fmtM(tot.s)}</td><td class="nr" style="color:${tot.r < 0 ? "var(--err)" : ""}">${fmtM(tot.r)}</td><td colspan="3"></td></tr></tfoot>`;
+      }
+      function sortFin(col) {
+        if (finSort.col === col) finSort.dir *= -1;
+        else {
+          finSort.col = col;
+          finSort.dir = 1;
+        }
+        renderFinance();
+      }
+
+      // ── CHARTS ────────────────────────────────────────────────────────────────
+      function updateCbCatFilter() {
+        const s = document.getElementById("cb-fcat");
+        s.innerHTML =
+          '<option value="">Усі</option>' +
+          cats
+            .map((c, i) => `<option value="${i}">${c.name}</option>`)
+            .join("");
+      }
+
+      function getChartData(xKey, yKey, catF, statF) {
+        let src = tasks.filter((t) => {
+          if (hiddenCats.has(t.cat)) return false;
+          if (catF !== "" && t.cat !== +catF) return false;
+          if (statF === "done" && t.prog < 100) return false;
+          if (statF === "active" && (t.prog === 0 || t.prog === 100))
+            return false;
+          if (statF === "pending" && t.prog !== 0) return false;
+          return true;
+        });
+
+        const groups = {};
+        const getKey = (t) => {
+          if (xKey === "cat") return CN(t.cat);
+          if (xKey === "contr") return t.contr || "(без підрядника)";
+          if (xKey === "status")
+            return t.prog === 100
+              ? "Завершено"
+              : t.prog > 0
+                ? "В роботі"
+                : "Не розпочато";
+          if (xKey === "task") return t.n + ". " + t.name.substring(0, 22);
+          if (xKey === "month") {
+            const ml = getML();
+            return ml[t.ms] ? `${ml[t.ms].name} ${ml[t.ms].y}` : "?";
+          }
+          return "?";
+        };
+        const getVal = (t) => {
+          if (yKey === "count") return 1;
+          if (yKey === "budget") return +t.budget || 0;
+          if (yKey === "spent") return +t.spent || 0;
+          if (yKey === "rest") return (+t.budget || 0) - (+t.spent || 0);
+          if (yKey === "prog") return t.prog;
+          if (yKey === "dur") return dur(t);
+          return 0;
+        };
+        const cnt = {};
+        src.forEach((t) => {
+          const k = getKey(t),
+            v = getVal(t);
+          if (k in groups) {
+            groups[k] += v;
+            cnt[k] = (cnt[k] || 0) + 1;
+          } else {
+            groups[k] = v;
+            cnt[k] = 1;
+          }
+        });
+        if (yKey === "prog")
+          Object.keys(groups).forEach(
+            (k) => (groups[k] = Math.round(groups[k] / (cnt[k] || 1))),
+          );
+        if (xKey === "task")
+          return {
+            labels: Object.keys(groups).slice(0, 15),
+            values: Object.values(groups).slice(0, 15),
+          };
+        return { labels: Object.keys(groups), values: Object.values(groups) };
+      }
+
+      function getGroupColors(xKey, labels) {
+        if (xKey === "cat")
+          return labels.map((l) => {
+            const c = cats.find((c2) => c2.name === l);
+            return c ? c.color : "#888";
+          });
+        if (xKey === "status")
+          return labels.map((l) =>
+            l === "Завершено"
+              ? "#16803c"
+              : l === "В роботі"
+                ? "#c07800"
+                : "#a09d97",
+          );
+        const pal = [
+          "#2563eb",
+          "#16803c",
+          "#c07800",
+          "#b71c1c",
+          "#006494",
+          "#8a6200",
+          "#5a5a5a",
+          "#7c3aed",
+          "#0891b2",
+          "#be185d",
+        ];
+        return labels.map((_, i) => pal[i % pal.length]);
+      }
+
+      function addCustomChart() {
+        const type = document.getElementById("cb-type").value;
+        const xKey = document.getElementById("cb-x").value;
+        const yKey = document.getElementById("cb-y").value;
+        const catF = document.getElementById("cb-fcat").value;
+        const statF = document.getElementById("cb-fstat").value;
+        const { labels, values } = getChartData(xKey, yKey, catF, statF);
+        const yLabels = {
+          count: "Кількість",
+          budget: "Бюджет (грн)",
+          spent: "Витрачено (грн)",
+          rest: "Залишок (грн)",
+          prog: "Виконання (%)",
+          dur: "Тривалість (тиж.)",
+        };
+        const xLabels = {
+          cat: "Категорія",
+          contr: "Підрядник",
+          status: "Статус",
+          month: "Місяць",
+          task: "Робота",
+        };
+        const title = `${yLabels[yKey]} за ${xLabels[xKey]}`;
+        const colors = getGroupColors(xKey, labels);
+        const id = "cc_" + Date.now();
+        customCharts.push({
+          id,
+          type,
+          xKey,
+          yKey,
+          catF,
+          statF,
+          labels,
+          values,
+          colors,
+          title,
+        });
+        renderCustomChart(customCharts[customCharts.length - 1]);
+      }
+
+      function renderCustomChart(c) {
+        const grid = document.getElementById("chart-grid");
+        const card = document.createElement("div");
+        card.className = "chart-card";
+        card.id = c.id;
+        card.innerHTML = `<h4><span>${c.title}</span>
+    <div class="chart-actions">
+      <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="Редагувати">✏️</button>
+      <button class="chart-act-btn" onclick="printChart('${c.id}')" title="Друк">🖨</button>
+      <button class="chart-act-btn del" onclick="removeChart('${c.id}')" title="Видалити">✕</button>
+    </div></h4><canvas height="200"></canvas>`;
+        grid.appendChild(card);
+        const realType = c.type === "horizontalBar" ? "bar" : c.type;
+        const isHoriz = c.type === "horizontalBar";
+        const inst = new Chart(card.querySelector("canvas").getContext("2d"), {
+          type: realType,
+          data: {
+            labels: c.labels,
+            datasets: [
+              {
+                data: c.values,
+                backgroundColor: c.colors,
+                borderColor: realType === "line" ? c.colors[0] : undefined,
+                borderWidth: realType === "line" ? 2 : 0,
+                fill: false,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            indexAxis: isHoriz ? "y" : undefined,
+            responsive: true,
+            plugins: {
+              legend: {
+                display: realType === "pie" || realType === "doughnut",
+                position: "bottom",
+                labels: { font: { size: 10 }, boxWidth: 10 },
+              },
+            },
+            scales:
+              realType === "pie" || realType === "doughnut"
+                ? {}
+                : {
+                    x: {
+                      ticks: {
+                        font: { size: 9 },
+                        maxRotation: isHoriz ? 0 : 35,
+                      },
+                    },
+                    y: {
+                      ticks: {
+                        font: { size: 9 },
+                        callback: (v) => (typeof v === "number" ? fmtM(v) : v),
+                      },
+                    },
+                  },
+          },
+        });
+        chartInstances.push({ id: c.id, inst });
+      }
+
+      function removeChart(id) {
+        const inst = chartInstances.find((c) => c.id === id);
+        if (inst)
+          try {
+            inst.inst.destroy();
+          } catch (e) {}
+        chartInstances = chartInstances.filter((c) => c.id !== id);
+        customCharts = customCharts.filter((c) => c.id !== id);
+        document.getElementById(id)?.remove();
+      }
+
+      function openChartEdit(id) {
+        const cc = customCharts.find((c) => c.id === id);
+        const isAuto = !cc;
+        document.getElementById("ce-id").value = id;
+        // populate cat filter options
+        const sel = document.getElementById("ce-fcat");
+        sel.innerHTML =
+          '<option value="">Усі</option>' +
+          cats
+            .map((c, i) => `<option value="${i}">${c.name}</option>`)
+            .join("");
+        if (cc) {
+          document.getElementById("ce-type").value = cc.type;
+          document.getElementById("ce-x").value = cc.xKey;
+          document.getElementById("ce-y").value = cc.yKey;
+          document.getElementById("ce-fcat").value = cc.catF;
+          document.getElementById("ce-fstat").value = cc.statF;
+        } else {
+          // defaults for auto charts
+          const autoDefaults = {
+            a1: { type: "pie", x: "cat", y: "count" },
+            a2: { type: "bar", x: "cat", y: "prog" },
+            a3: { type: "doughnut", x: "status", y: "count" },
+            a4: { type: "bar", x: "task", y: "dur" },
+            a5: { type: "line", x: "month", y: "count" },
+          };
+          const def = autoDefaults[id] || { type: "bar", x: "cat", y: "count" };
+          document.getElementById("ce-type").value = def.type;
+          document.getElementById("ce-x").value = def.x;
+          document.getElementById("ce-y").value = def.y;
+          document.getElementById("ce-fcat").value = "";
+          document.getElementById("ce-fstat").value = "";
+        }
+        document.getElementById("chart-edit-modal").style.display = "flex";
+      }
+
+      function closeChartEdit() {
+        document.getElementById("chart-edit-modal").style.display = "none";
+      }
+
+      function applyChartEdit() {
+        const id = document.getElementById("ce-id").value;
+        const type = document.getElementById("ce-type").value;
+        const xKey = document.getElementById("ce-x").value;
+        const yKey = document.getElementById("ce-y").value;
+        const catF = document.getElementById("ce-fcat").value;
+        const statF = document.getElementById("ce-fstat").value;
+        const { labels, values } = getChartData(xKey, yKey, catF, statF);
+        const colors = getGroupColors(xKey, labels);
+        const yL = {
+          count: "Кількість",
+          budget: "Бюджет (грн)",
+          spent: "Витрачено (грн)",
+          rest: "Залишок (грн)",
+          prog: "Виконання (%)",
+          dur: "Тривалість (тиж.)",
+        };
+        const xL = {
+          cat: "Категорія",
+          contr: "Підрядник",
+          status: "Статус",
+          month: "Місяць",
+          task: "Робота",
+        };
+        const title = `${yL[yKey]} за ${xL[xKey]}`;
+
+        // remove existing
+        const inst = chartInstances.find((c) => c.id === id);
+        if (inst)
+          try {
+            inst.inst.destroy();
+          } catch (e) {}
+        chartInstances = chartInstances.filter((c) => c.id !== id);
+
+        const card = document.getElementById(id);
+        if (!card) {
+          closeChartEdit();
+          return;
+        }
+        card
+          .querySelector("canvas")
+          .replaceWith(
+            Object.assign(document.createElement("canvas"), { height: 200 }),
+          );
+        card.querySelector("h4 span").textContent = title;
+
+        const realType = type === "horizontalBar" ? "bar" : type;
+        const isHoriz = type === "horizontalBar";
+        const newInst = new Chart(
+          card.querySelector("canvas").getContext("2d"),
+          {
+            type: realType,
+            data: {
+              labels,
+              datasets: [
+                {
+                  data: values,
+                  backgroundColor: colors,
+                  borderColor: realType === "line" ? colors[0] : undefined,
+                  borderWidth: realType === "line" ? 2 : 0,
+                  fill: false,
+                  tension: 0.3,
+                },
+              ],
+            },
+            options: {
+              indexAxis: isHoriz ? "y" : undefined,
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: realType === "pie" || realType === "doughnut",
+                  position: "bottom",
+                  labels: { font: { size: 10 }, boxWidth: 10 },
+                },
+              },
+              scales:
+                realType === "pie" || realType === "doughnut"
+                  ? {}
+                  : {
+                      x: {
+                        ticks: {
+                          font: { size: 9 },
+                          maxRotation: isHoriz ? 0 : 35,
+                        },
+                      },
+                      y: {
+                        ticks: {
+                          font: { size: 9 },
+                          callback: (v) =>
+                            typeof v === "number" ? fmtM(v) : v,
+                        },
+                      },
+                    },
+            },
+          },
+        );
+        chartInstances.push({ id, inst: newInst });
+
+        // update customCharts record if it exists
+        const ci = customCharts.findIndex((c) => c.id === id);
+        if (ci >= 0)
+          customCharts[ci] = {
+            ...customCharts[ci],
+            type,
+            xKey,
+            yKey,
+            catF,
+            statF,
+            labels,
+            values,
+            colors,
+            title,
+          };
+        closeChartEdit();
+      }
+
+      function printChart(id) {
+        const card = document.getElementById(id);
+        if (!card) return;
+        const canvas = card.querySelector("canvas");
+        const title = card.querySelector("h4 span")?.textContent || "Графік";
+        const img = canvas.toDataURL("image/png");
+        const w = window.open("", "_blank");
+        w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+    <style>body{font-family:'Segoe UI',sans-serif;padding:20px;text-align:center}h2{font-size:14px;margin-bottom:16px;color:#333}img{max-width:100%}@page{margin:10mm}</style>
+    </head><body><h2>${title}</h2><img src="${img}"><br><br>
+    <script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
+        w.document.close();
+      }
+
+      function renderAutoCharts() {
+        // Auto charts section
+        const grid = document.getElementById("chart-grid");
+        // Remove auto charts (those without id starting 'cc_')
+        grid
+          .querySelectorAll('.chart-card:not([id^="cc_"])')
+          .forEach((el) => el.remove());
+        chartInstances
+          .filter((c) => !c.id.startsWith("cc_"))
+          .forEach((c) => {
+            try {
+              c.inst.destroy();
+            } catch (e) {}
+          });
+        chartInstances = chartInstances.filter((c) => c.id.startsWith("cc_"));
+
+        const autoCharts = [
+          {
+            id: "a1",
+            type: "pie",
+            x: "cat",
+            y: "count",
+            title: "Кількість робіт за категорією",
+          },
+          {
+            id: "a2",
+            type: "bar",
+            x: "cat",
+            y: "prog",
+            title: "Середнє виконання за категорією (%)",
+          },
+          {
+            id: "a3",
+            type: "doughnut",
+            x: "status",
+            y: "count",
+            title: "Статус виконання",
+          },
+          {
+            id: "a4",
+            type: "bar",
+            x: "task",
+            y: "dur",
+            title: "Тривалість (тиж., топ 15)",
+          },
+          {
+            id: "a5",
+            type: "line",
+            x: "month",
+            y: "count",
+            title: "Активних робіт по місяцях",
+          },
+        ];
+        autoCharts.forEach((c) => {
+          const { labels, values } = getChartData(c.x, c.y, "", "");
+          const colors = getGroupColors(c.x, labels);
+          const card = document.createElement("div");
+          card.className = "chart-card";
+          card.id = c.id;
+          card.innerHTML = `<h4><span>${c.title}</span>
+      <div class="chart-actions">
+        <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="Редагувати">✏️</button>
+        <button class="chart-act-btn" onclick="printChart('${c.id}')" title="Друк">🖨</button>
+      </div></h4><canvas height="200"></canvas>`;
+          grid.appendChild(card);
+          const inst = new Chart(
+            card.querySelector("canvas").getContext("2d"),
+            {
+              type: c.type,
+              data: {
+                labels,
+                datasets: [
+                  {
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: c.type === "line" ? colors[0] : undefined,
+                    borderWidth: c.type === "line" ? 2 : 0,
+                    fill: false,
+                    tension: 0.3,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    display: c.type === "pie" || c.type === "doughnut",
+                    position: "bottom",
+                    labels: { font: { size: 10 }, boxWidth: 10 },
+                  },
+                },
+                scales:
+                  c.type === "pie" || c.type === "doughnut"
+                    ? {}
+                    : {
+                        x: { ticks: { font: { size: 9 }, maxRotation: 35 } },
+                        y: { ticks: { font: { size: 9 } } },
+                      },
+              },
+            },
+          );
+          chartInstances.push({ id: c.id, inst });
+        });
+      }
+
+      // ── TASK MODAL ────────────────────────────────────────────────────────────
+      function buildMonthSels() {
+        const ml = getML();
+        ["f-ms", "f-me"].forEach((id) => {
+          document.getElementById(id).innerHTML = ml
+            .map(
+              (m, i) =>
+                `<option value="${i}">${i + 1}. ${m.name} ${m.y}</option>`,
+            )
+            .join("");
+        });
+      }
+      function buildChips(sel) {
+        selCat = sel;
+        document.getElementById("cat-chips").innerHTML = cats
+          .map(
+            (c, i) =>
+              `<div class="chip${i === sel ? " sel" : ""}" style="background:${c.color}" onclick="pickCat(${i})">${c.name}</div>`,
+          )
+          .join("");
+      }
+      function pickCat(i) {
+        selCat = i;
+        document
+          .querySelectorAll(".chip")
+          .forEach((c, j) => c.classList.toggle("sel", j === i));
+      }
+      function buildDepList(cur) {
+        document.getElementById("dep-list").innerHTML = tasks
+          .filter((t) => t !== tasks[editIdx])
+          .map(
+            (t) =>
+              `<label class="dep-item"><input type="checkbox" value="${t.n}"${(cur || []).includes(t.n) ? " checked" : ""}> ${t.n}. ${t.name}</label>`,
+          )
+          .join("");
+      }
+      function updProg(v) {
+        document.getElementById("f-prog-lbl").textContent = v + "%";
+      }
+      function updCalc() {
+        const b = +document.getElementById("f-budget").value || 0,
+          s = +document.getElementById("f-spent").value || 0,
+          r = b - s;
+        document.getElementById("f-rest").value =
+          r >= 0 ? fmtM(r) + " грн" : "Перевищення " + fmtM(-r) + " грн";
+        const ms = +document.getElementById("f-ms").value,
+          ws = +document.getElementById("f-ws").value;
+        const me = +document.getElementById("f-me").value,
+          we = +document.getElementById("f-we").value;
+        const rw = remWk({ ms, ws, me, we }),
+          rate = rw > 0 ? Math.round(r / rw) : 0;
+        document.getElementById("calc-info").innerHTML =
+          `Залишок: <b>${fmtM(r)} грн</b> · Тижнів: <b>${rw}</b> · Ставка: <b>${rw > 0 ? fmtM(rate) + " грн/тиж" : "—"}</b>`;
+      }
+      function openAdd() {
+        editIdx = null;
+        buildMonthSels();
+        buildChips(0);
+        buildDepList([]);
+        document.getElementById("m-title").textContent = "Нова робота";
+        ["f-name", "f-contr"].forEach(
+          (id) => (document.getElementById(id).value = ""),
+        );
+        document.getElementById("f-ms").value = "0";
+        document.getElementById("f-ws").value = "0";
+        document.getElementById("f-me").value = "1";
+        document.getElementById("f-we").value = "3";
+        document.getElementById("f-prog").value = "0";
+        updProg(0);
+        document.getElementById("f-budget").value = "";
+        document.getElementById("f-spent").value = "";
+        document.getElementById("f-rest").value = "";
+        document.getElementById("dep-warn").classList.remove("show");
+        document.getElementById("calc-info").textContent =
+          "Заповніть вартість для розрахунку";
+        document.getElementById("modal").style.display = "flex";
+        setTimeout(() => document.getElementById("f-name").focus(), 50);
+      }
+      function openEdit(ti) {
+        editIdx = ti;
+        const t = tasks[ti];
+        buildMonthSels();
+        buildChips(t.cat);
+        buildDepList(t.deps || []);
+        document.getElementById("m-title").textContent = "Редагувати роботу";
+        document.getElementById("f-name").value = t.name;
+        document.getElementById("f-contr").value = t.contr || "";
+        document.getElementById("f-ms").value = String(t.ms);
+        document.getElementById("f-ws").value = String(t.ws);
+        document.getElementById("f-me").value = String(t.me);
+        document.getElementById("f-we").value = String(t.we);
+        document.getElementById("f-prog").value = String(t.prog || 0);
+        updProg(t.prog || 0);
+        document.getElementById("f-budget").value = t.budget || "";
+        document.getElementById("f-spent").value = t.spent || "";
+        updCalc();
+        const warns = checkDeps(t);
+        const wb = document.getElementById("dep-warn");
+        if (warns.length) {
+          wb.innerHTML = "⚠️ " + warns.join("<br>");
+          wb.classList.add("show");
+        } else wb.classList.remove("show");
+        document.getElementById("modal").style.display = "flex";
+      }
+      function closeModal() {
+        document.getElementById("modal").style.display = "none";
+      }
+      function saveTask() {
+        const name = document.getElementById("f-name").value.trim();
+        if (!name) {
+          document.getElementById("f-name").focus();
+          return;
+        }
+        const ms = +document.getElementById("f-ms").value,
+          ws = +document.getElementById("f-ws").value;
+        const me = +document.getElementById("f-me").value,
+          we = +document.getElementById("f-we").value;
+        if (ms * 4 + ws > me * 4 + we) {
+          alert("Початок не може бути після кінця");
+          return;
+        }
+        const deps = [
+          ...document.querySelectorAll("#dep-list input:checked"),
+        ].map((c) => +c.value);
+        const obj = {
+          name,
+          cat: selCat,
+          contr: document.getElementById("f-contr").value.trim(),
+          ms,
+          ws,
+          me,
+          we,
+          prog: +document.getElementById("f-prog").value,
+          budget: +document.getElementById("f-budget").value || 0,
+          spent: +document.getElementById("f-spent").value || 0,
+          deps,
+        };
+        const warns = checkDeps({
+          ...obj,
+          n: editIdx !== null ? tasks[editIdx].n : nextN,
+        });
+        if (
+          warns.length &&
+          !confirm(
+            "Виявлені порушення залежностей:\n" +
+              warns.join("\n") +
+              "\n\nВсе одно зберегти?",
+          )
+        )
+          return;
+        if (editIdx !== null) tasks[editIdx] = { ...tasks[editIdx], ...obj };
+        else tasks.push({ n: nextN++, ...obj });
+        closeModal();
+        saveAll();
+        render();
+      }
+      function delTask(ti) {
+        if (!confirm(`Видалити "${tasks[ti].name}"?`)) return;
+        tasks.splice(ti, 1);
+        saveAll();
+        render();
+      }
+
+      // ── CATEGORY EDITOR ───────────────────────────────────────────────────────
+      const CAT_PALETTE = [
+        "#2e7d32",
+        "#1565a0",
+        "#b84c0a",
+        "#b71c1c",
+        "#5a5a5a",
+        "#8a6200",
+        "#006494",
+        "#7c3aed",
+        "#0891b2",
+        "#be185d",
+        "#65a30d",
+        "#ea580c",
+        "#0f766e",
+        "#92400e",
+        "#1d4ed8",
+        "#9d174d",
+      ];
+
+      function openCatEditor() {
+        tempCats = cats.map((c) => ({ ...c }));
+        renderCatList();
+        document.getElementById("cat-modal").style.display = "flex";
+      }
+
+      function renderCatList() {
+        const el = document.getElementById("cat-editor-list");
+        el.innerHTML = "";
+        tempCats.forEach((c, i) => {
+          const row = document.createElement("div");
+          row.className = "cat-row";
+          row.dataset.i = i;
+
+          // color swatch that opens picker
+          const swatch = document.createElement("div");
+          swatch.className = "cat-swatch";
+          swatch.style.background = c.color;
+          swatch.title = "Натисніть, щоб змінити колір";
+
+          // hidden native color input
+          const colorInp = document.createElement("input");
+          colorInp.type = "color";
+          colorInp.value = c.color;
+          colorInp.style.cssText =
+            "position:absolute;width:0;height:0;opacity:0;pointer-events:none";
+          colorInp.addEventListener("input", () => {
+            tempCats[i].color = colorInp.value;
+            swatch.style.background = colorInp.value;
+            renderColorPalette(i, paletteEl);
+          });
+          swatch.addEventListener("click", () => colorInp.click());
+
+          // palette swatches
+          const paletteEl = document.createElement("div");
+          paletteEl.className = "cat-palette";
+          renderColorPalette(i, paletteEl);
+
+          // name input
+          const nameInp = document.createElement("input");
+          nameInp.className = "cat-name-inp";
+          nameInp.value = c.name;
+          nameInp.placeholder = "Назва категорії";
+          nameInp.addEventListener("input", () => {
+            tempCats[i].name = nameInp.value;
+          });
+
+          // delete button
+          const delBtn = document.createElement("span");
+          delBtn.className = "cat-del";
+          delBtn.textContent = "✕";
+          delBtn.title = "Видалити";
+          delBtn.addEventListener("click", () => {
+            if (
+              tasks.some((t) => t.cat === i) &&
+              !confirm("Ця категорія використовується в роботах. Видалити?")
+            )
+              return;
+            // flush current name values before splice
+            flushCatNames();
+            tempCats.splice(i, 1);
+            renderCatList();
+          });
+
+          const left = document.createElement("div");
+          left.style.cssText =
+            "display:flex;flex-direction:column;gap:5px;flex-shrink:0;position:relative";
+          left.appendChild(swatch);
+          left.appendChild(colorInp);
+          left.appendChild(paletteEl);
+
+          row.appendChild(left);
+          row.appendChild(nameInp);
+          row.appendChild(delBtn);
+          el.appendChild(row);
+        });
+      }
+
+      function renderColorPalette(catIdx, container) {
+        container.innerHTML = "";
+        CAT_PALETTE.forEach((hex) => {
+          const dot = document.createElement("div");
+          dot.className = "pal-dot";
+          dot.style.background = hex;
+          dot.title = hex;
+          if (tempCats[catIdx] && tempCats[catIdx].color === hex)
+            dot.classList.add("active");
+          dot.addEventListener("click", (e) => {
+            e.stopPropagation();
+            tempCats[catIdx].color = hex;
+            // update swatch and native input in same row
+            const row = container.closest(".cat-row");
+            row.querySelector(".cat-swatch").style.background = hex;
+            row.querySelector("input[type=color]").value = hex;
+            // update active dots
+            container
+              .querySelectorAll(".pal-dot")
+              .forEach((d) =>
+                d.classList.toggle(
+                  "active",
+                  d.style.background === hexToRgb(hex) || d.title === hex,
+                ),
+              );
+          });
+          container.appendChild(dot);
+        });
+      }
+
+      function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16),
+          g = parseInt(hex.slice(3, 5), 16),
+          b = parseInt(hex.slice(5, 7), 16);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function flushCatNames() {
+        document
+          .querySelectorAll("#cat-editor-list .cat-row")
+          .forEach((row, i) => {
+            const inp = row.querySelector(".cat-name-inp");
+            if (inp && tempCats[i]) tempCats[i].name = inp.value;
+          });
+      }
+
+      function addCat() {
+        flushCatNames();
+        const usedColors = tempCats.map((c) => c.color);
+        const color =
+          CAT_PALETTE.find((c) => !usedColors.includes(c)) ||
+          CAT_PALETTE[tempCats.length % CAT_PALETTE.length];
+        tempCats.push({ name: "Нова категорія", color });
+        renderCatList();
+        // scroll to bottom and focus new name input
+        setTimeout(() => {
+          const rows = document.querySelectorAll("#cat-editor-list .cat-row");
+          const last = rows[rows.length - 1];
+          if (last) {
+            last.scrollIntoView({ behavior: "smooth" });
+            last.querySelector(".cat-name-inp")?.select();
+          }
+        }, 50);
+      }
+      function saveCats() {
+        flushCatNames();
+        cats = [...tempCats];
+        saveAll();
+        render();
+        closeCatModal();
+      }
+      function closeCatModal() {
+        document.getElementById("cat-modal").style.display = "none";
+      }
+
+      // ── PROJECT SETTINGS ──────────────────────────────────────────────────────
+      function openProj() {
+        const sel = document.getElementById("p-sm");
+        sel.innerHTML = MN.map(
+          (m, i) => `<option value="${i}">${m}</option>`,
+        ).join("");
+        sel.value = String(proj.sm);
+        document.getElementById("p-name").value = proj.name;
+        document.getElementById("p-sy").value = proj.sy;
+        document.getElementById("p-nm").value = proj.nm;
+        document.getElementById("proj-modal").style.display = "flex";
+      }
+      function closeProjModal() {
+        document.getElementById("proj-modal").style.display = "none";
+      }
+      function saveProjSettings() {
+        proj.name = document.getElementById("p-name").value.trim() || proj.name;
+        proj.sm = +document.getElementById("p-sm").value;
+        proj.sy = +document.getElementById("p-sy").value;
+        proj.nm = Math.min(
+          36,
+          Math.max(3, +document.getElementById("p-nm").value),
+        );
+        closeProjModal();
+        saveAll();
+        render();
+      }
+
+      // ── PROJECT MANAGER ───────────────────────────────────────────────────────
+      function openProjManager() {
+        document.getElementById("proj-list-el").innerHTML = Object.entries(
+          allProjects,
+        )
+          .map(
+            ([id, p]) =>
+              `<div class="pj-row${id === currentId ? " active" : ""}">
+      <input class="pj-name-inp" value="${p.proj.name}" onchange="allProjects['${id}'].proj.name=this.value;updateProjSel();" onclick="event.stopPropagation()">
+      <span style="font-size:10px;color:var(--txt3)">${p.tasks?.length || 0} робіт</span>
+      <span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити">🗑</span>
+    </div>`,
+          )
+          .join("");
+        document.getElementById("projmgr-modal").style.display = "flex";
+      }
+      function closeProjMgr() {
+        document.getElementById("projmgr-modal").style.display = "none";
+      }
+      function createProject() {
+        const id = "p_" + Date.now();
+        const name = prompt("Назва нового проєкту:", "Новий проєкт");
+        if (!name) return;
+        allProjects[id] = {
+          proj: { ...DEF_PROJ, name },
+          cats: DEF_CATS.map((c) => ({ ...c })),
+          tasks: [],
+          nextN: 1,
+        };
+        saveAll();
+        switchProject(id);
+        openProjManager();
+      }
+      function deleteProject(id) {
+        if (Object.keys(allProjects).length <= 1) {
+          alert("Має бути хоча б один проєкт");
+          return;
+        }
+        if (
+          !confirm(
+            `Видалити проєкт "${allProjects[id]?.proj?.name}"? Цю дію неможливо скасувати.`,
+          )
+        )
+          return;
+        delete allProjects[id];
+        if (currentId === id) {
+          currentId = Object.keys(allProjects)[0];
+          loadCurrent();
+        }
+        saveAll();
+        render();
+        openProjManager();
+      }
+
+      // ── TAB SWITCH ────────────────────────────────────────────────────────────
+      function switchTab(id, el) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".pane")
+          .forEach((p) => p.classList.remove("active"));
+        el.classList.add("active");
+        document.getElementById("pane-" + id).classList.add("active");
+        if (id === "finance") {
+          renderFinFilters();
+          renderFinance();
+        }
+        if (id === "charts") {
+          updateCbCatFilter();
+          renderAutoCharts();
+        }
+      }
+
+      // ── EXPORT / IMPORT ───────────────────────────────────────────────────────
+      function exportXLSX() {
+        const ml = getML();
+        const rows = [
+          [
+            "#",
+            "Назва",
+            "Категорія",
+            "Підрядник",
+            "Початок",
+            "Тиж",
+            "Кінець",
+            "Тиж",
+            "Тривалість,тиж",
+            "Виконання,%",
+            "Бюджет,грн",
+            "Витрачено,грн",
+            "Залишок,грн",
+            "Залежності",
+          ],
+        ];
+        tasks.forEach((t) =>
+          rows.push([
+            t.n,
+            t.name,
+            CN(t.cat),
+            t.contr || "",
+            `${ml[t.ms]?.name || ""} ${ml[t.ms]?.y || ""}`,
+            t.ws + 1,
+            `${ml[t.me]?.name || ""} ${ml[t.me]?.y || ""}`,
+            t.we + 1,
+            dur(t),
+            t.prog,
+            +t.budget || 0,
+            +t.spent || 0,
+            (+t.budget || 0) - (+t.spent || 0),
+            (t.deps || []).join(", "),
+          ]),
+        );
+        const csv = rows
+          .map((r) =>
+            r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"),
+          )
+          .join("\r\n");
+        dl("графік.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
+      }
+      function exportJSON() {
+        dl(
+          `${proj.name}.json`,
+          JSON.stringify({ proj, cats, tasks }, null, 2),
+          "application/json",
+        );
+      }
+      function importJSON(e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = (ev) => {
+          try {
+            const d = JSON.parse(ev.target.result);
+            if (d.tasks) {
+              const id = "p_" + Date.now();
+              allProjects[id] = {
+                proj: d.proj || {
+                  ...DEF_PROJ,
+                  name: f.name.replace(".json", ""),
+                },
+                cats: d.cats || DEF_CATS.map((c) => ({ ...c })),
+                tasks: d.tasks,
+                nextN: Math.max(...d.tasks.map((t) => t.n)) + 1,
+              };
+              saveAll();
+              switchProject(id);
+              alert(`Імпортовано як проєкт "${allProjects[id].proj.name}"`);
+            }
+          } catch {
+            alert("Помилка файлу");
+          }
+        };
+        r.readAsText(f);
+        e.target.value = "";
+      }
+      function dl(name, content, type) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([content], { type }));
+        a.download = name;
+        a.click();
+      }
+
+      // ── KEYBOARD ─────────────────────────────────────────────────────────────
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          [
+            closeModal,
+            closeProjModal,
+            closeCatModal,
+            closeProjMgr,
+            closeChartEdit,
+          ].forEach((fn) => fn());
+        }
+        if (e.key === "Enter" && e.ctrlKey) {
+          if (document.getElementById("modal").style.display !== "none")
+            saveTask();
+          if (document.getElementById("proj-modal").style.display !== "none")
+            saveProjSettings();
+          if (document.getElementById("cat-modal").style.display !== "none")
+            saveCats();
+          if (
+            document.getElementById("chart-edit-modal").style.display !== "none"
+          )
+            applyChartEdit();
+        }
+      });
+
+      // ── INIT ─────────────────────────────────────────────────────────────────
+      loadAll();
+      render();
+
+      // ── PWA SERVICE WORKER ────────────────────────────────────────────────────
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((registration) => {
+              console.log("Service Worker зареєстрирований:", registration);
+
+              // Перевірка оновлень
+              registration.addEventListener("updatefound", () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log("Нова версія додатку доступна");
+                    // Можна показати повідомлення користувачеві
+                  }
+                });
+              });
+            })
+            .catch((error) => {
+              console.log("Помилка реєстрації Service Worker:", error);
+            });
+        });
+      }
+
+      // PWA Install Prompt (для кнопки Install)
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log("PWA встановлення доступне");
+        // Можна показати кнопку "Встановити"
+      });
+
+      window.addEventListener("appinstalled", () => {
+        console.log("PWA встановлено");
+        deferredPrompt = null;
+      });
+    </script>
+  </body>
+</html>
