@@ -2,7 +2,7 @@
     "name": "Ганtt Про - Управління проектами",
     "short_name": "Ганtt Про",
     "description": "Веб-додаток для управління проектами за допомогою діаграм Ганта з офлайн-доступом",
-    "start_url": "./Ганtt_Про_v4_1.html",
+    "start_url": "./index.html",
     "scope": "./",
     "display": "standalone",
     "orientation": "portrait-primary",
@@ -45,7 +45,7 @@
             "name": "Нова робота",
             "short_name": "Нова робота",
             "description": "Швидко додати нову роботу до графіка",
-            "url": "./Ганtt_Про_v4_1.html?action=new-task",
+            "url": "./index.html?action=new-task",
             "icons": [
                 {
                     "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%231e50c8' width='96' height='96' rx='20'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='50' fill='white'>➕</text></svg>",
@@ -56,7 +56,7 @@
         }
     ],
     "share_target": {
-        "action": "./Ганtt_Про_v4_1.html",
+        "action": "./index.html",
         "method": "POST",
         "enctype": "multipart/form-data",
         "params": {

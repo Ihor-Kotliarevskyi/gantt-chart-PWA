@@ -3,7 +3,7 @@
 const CACHE_NAME = "gantt-pro-v1";
 const URLS_TO_CACHE = [
   "./",
-  "./Ганtt_Про_v4_1.html",
+  "./index.html",
   "./manifest.json",
   "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
 ];
@@ -88,7 +88,7 @@ self.addEventListener("fetch", (event) => {
                 request.destination === "" ||
                 request.destination === "document"
               ) {
-                return caches.match("./Ганtt_Про_v4_1.html");
+                return caches.match("./index.html");
               }
               return new Response("Офлайн режим. Ресурс недоступний.", {
                 status: 503,
@@ -115,7 +115,8 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match(request).catch(() => {
+          return caches.match(request).then((response) => {
+            if (response) return response;
             return new Response("Ресурс недоступний у офлайн режимі", {
               status: 503,
               statusText: "Service Unavailable",
