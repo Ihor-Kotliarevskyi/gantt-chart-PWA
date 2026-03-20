@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/gantt-chart-PWA/sw.js', { scope: '/gantt-chart-PWA/' })})}
