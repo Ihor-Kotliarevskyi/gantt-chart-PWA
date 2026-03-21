@@ -14,12 +14,16 @@ interface AppState {
   isCategoryModalOpen: boolean;
   isProjectManagerModalOpen: boolean;
   editingTaskId: number | null; // null = closed, -1 = new, >0 = editing
+  showContr: boolean;
+  hidePast: boolean;
 
   // Actions
   setProjectModalOpen: (open: boolean) => void;
   setCategoryModalOpen: (open: boolean) => void;
   setProjectManagerModalOpen: (open: boolean) => void;
   setEditingTask: (id: number | null) => void;
+  setShowContr: (show: boolean) => void;
+  setHidePast: (hide: boolean) => void;
   switchProject: (id: string) => void;
   renameProject: (id: string, name: string) => void;
   createProject: (name: string) => string;
@@ -38,6 +42,9 @@ interface AppState {
   
   // Chart Actions
   setCustomCharts: (projectId: string, charts: CustomChart[]) => void;
+  addCustomChart: (projectId: string, chart: Omit<CustomChart, 'id'>) => void;
+  updateCustomChart: (projectId: string, id: string, updates: Partial<CustomChart>) => void;
+  deleteCustomChart: (projectId: string, id: string) => void;
 }
 
 const DEF_CATS: Category[] = [
@@ -55,12 +62,22 @@ const DEF_PROJ: ProjectSettings = { name: "Будівельний об'єкт", 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      allProjects: {} as AllProjects,
+      allProjects: {
+        'p_default': {
+          proj: { ...DEF_PROJ },
+          cats: [...DEF_CATS],
+          tasks: [],
+          nextN: 1,
+          customCharts: []
+        }
+      } as AllProjects,
       currentId: 'p_default',
       isProjectModalOpen: false,
       isCategoryModalOpen: false,
       isProjectManagerModalOpen: false,
       editingTaskId: null,
+      showContr: false,
+      hidePast: false,
       
       get currentProject(): ProjectData | undefined {
         return get().allProjects[get().currentId];
@@ -70,6 +87,8 @@ export const useAppStore = create<AppState>()(
       setCategoryModalOpen: (open: boolean) => set({ isCategoryModalOpen: open }),
       setProjectManagerModalOpen: (open: boolean) => set({ isProjectManagerModalOpen: open }),
       setEditingTask: (id: number | null) => set({ editingTaskId: id }),
+      setShowContr: (show: boolean) => set({ showContr: show }),
+      setHidePast: (hide: boolean) => set({ hidePast: hide }),
 
       switchProject: (id: string) => set({ currentId: id }),
       
@@ -122,13 +141,20 @@ export const useAppStore = create<AppState>()(
       
       addTask: (projectId: string, task: Omit<Task, 'n'>) => set((state: AppState) => {
         const p = state.allProjects[projectId];
+        if (!p) {
+          console.error("Project not found:", projectId);
+          return state;
+        }
+        const nextN = Number(p.nextN) || (p.tasks && p.tasks.length > 0 ? Math.max(...p.tasks.map(t => t.n)) + 1 : 1);
+        const newTask = { ...task, n: nextN };
+        console.log("Adding task:", newTask, "to project:", projectId);
         return {
           allProjects: {
             ...state.allProjects,
             [projectId]: {
               ...p,
-              tasks: [...p.tasks, { ...task, n: p.nextN }],
-              nextN: p.nextN + 1
+              tasks: [...(p.tasks || []), newTask],
+              nextN: nextN + 1
             }
           }
         };
@@ -136,6 +162,7 @@ export const useAppStore = create<AppState>()(
       
       updateTask: (projectId: string, taskN: number, updates: Partial<Task>) => set((state: AppState) => {
         const p = state.allProjects[projectId];
+        if (!p) return state;
         return {
           allProjects: {
             ...state.allProjects,
@@ -149,6 +176,7 @@ export const useAppStore = create<AppState>()(
       
       deleteTask: (projectId: string, taskN: number) => set((state: AppState) => {
         const p = state.allProjects[projectId];
+        if (!p) return state;
         return {
           allProjects: {
             ...state.allProjects,
@@ -162,6 +190,7 @@ export const useAppStore = create<AppState>()(
 
       reorderTasks: (projectId: string, fromIndex: number, toIndex: number) => set((state: AppState) => {
         const p = state.allProjects[projectId];
+        if (!p) return state;
         const nextTasks = [...p.tasks];
         const [removed] = nextTasks.splice(fromIndex, 1);
         nextTasks.splice(toIndex, 0, removed);
@@ -193,20 +222,88 @@ export const useAppStore = create<AppState>()(
             customCharts: charts
           }
         }
-      }))
+      })),
+
+      addCustomChart: (projectId: string, chart: Omit<CustomChart, 'id'>) => set((state: AppState) => {
+        const p = state.allProjects[projectId];
+        if (!p) return state;
+        const newChart = { ...chart, id: 'cc_' + Date.now() };
+        return {
+          allProjects: {
+            ...state.allProjects,
+            [projectId]: {
+              ...p,
+              customCharts: [...(p.customCharts || []), newChart]
+            }
+          }
+        };
+      }),
+
+      updateCustomChart: (projectId: string, id: string, updates: Partial<CustomChart>) => set((state: AppState) => {
+        const p = state.allProjects[projectId];
+        if (!p) return state;
+        return {
+          allProjects: {
+            ...state.allProjects,
+            [projectId]: {
+              ...p,
+              customCharts: (p.customCharts || []).map(c => c.id === id ? { ...c, ...updates } : c)
+            }
+          }
+        };
+      }),
+
+      deleteCustomChart: (projectId: string, id: string) => set((state: AppState) => {
+        const p = state.allProjects[projectId];
+        if (!p) return state;
+        return {
+          allProjects: {
+            ...state.allProjects,
+            [projectId]: {
+              ...p,
+              customCharts: (p.customCharts || []).filter(c => c.id !== id)
+            }
+          }
+        };
+      })
     }),
     {
       name: 'gantt-storage',
       version: 1,
-      migrate: (persistedState: any) => {
-        // Here we will migrate from the old localStorage "ganttProjs" and "ganttCur" if needed
-        // Only run on fresh install if empty
-        if (Object.keys(persistedState?.allProjects || {}).length === 0) {
-          const oldProjs = JSON.parse(localStorage.getItem('ganttProjs') || '{}');
-          const oldCur = localStorage.getItem('ganttCur');
-          if (Object.keys(oldProjs).length > 0) {
-            return { allProjects: oldProjs, currentId: oldCur || Object.keys(oldProjs)[0] };
+      onRehydrateStorage: () => {
+        console.log('Hydration starting...');
+        return (rehydratedState, error) => {
+          if (error) {
+            console.error('An error occurred during hydration', error);
+          } else {
+            console.log('Hydration finished successfully');
+            // Ensure we have at least one project
+            if (rehydratedState && Object.keys(rehydratedState.allProjects || {}).length === 0) {
+              console.log('No projects found after hydration, check legacy...');
+            }
           }
+        };
+      },
+      migrate: (persistedState: any, version: number) => {
+        console.log('Migrating state from version:', version);
+        if (version === 0 || !persistedState || Object.keys(persistedState.allProjects || {}).length === 0) {
+          // Migration from legacy localStorage formats
+          try {
+            const v3 = JSON.parse(localStorage.getItem('gantt_pro_v3') || 'null');
+            if (v3 && v3.allProjects && Object.keys(v3.allProjects).length > 0) {
+              console.log('Found v3 data, migrating...');
+              return v3;
+            }
+          } catch (e) {}
+
+          try {
+            const oldProjs = JSON.parse(localStorage.getItem('ganttProjs') || '{}');
+            const oldCur = localStorage.getItem('ganttCur');
+            if (Object.keys(oldProjs).length > 0) {
+              console.log('Found old data, migrating...');
+              return { allProjects: oldProjs, currentId: oldCur || Object.keys(oldProjs)[0] };
+            }
+          } catch (e) {}
         }
         return persistedState;
       }

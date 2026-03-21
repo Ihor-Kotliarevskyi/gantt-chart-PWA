@@ -15,16 +15,23 @@ interface DragState {
 }
 
 export const GanttTab: React.FC = () => {
-  const { currentProject, currentId, setEditingTask, deleteTask, updateTask } = useAppStore();
+  const currentProject = useAppStore(state => state.allProjects[state.currentId]);
+  const currentId = useAppStore(state => state.currentId);
+  const setEditingTask = useAppStore(state => state.setEditingTask);
+  const deleteTask = useAppStore(state => state.deleteTask);
+  const updateTask = useAppStore(state => state.updateTask);
+  const showContr = useAppStore(state => state.showContr);
+  const hidePast = useAppStore(state => state.hidePast);
+
   const [hiddenCats, setHiddenCats] = useState<Set<number>>(new Set());
-  const [hidePast, setHidePast] = useState(false);
-  const [showContr, setShowContr] = useState(false);
   
   const [drag, setDrag] = useState<DragState | null>(null);
   const [rowOver, setRowOver] = useState<number | null>(null);
 
   if (!currentProject) return null;
   const { proj, tasks, cats } = currentProject;
+  
+  console.log("GanttTab rendering with tasks count:", tasks.length);
 
   const toggleCat = (catIdx: number) => {
     setHiddenCats(prev => {
@@ -43,7 +50,6 @@ export const GanttTab: React.FC = () => {
 
   const visibleTasks = tasks.filter(t => !hiddenCats.has(t.cat));
 
-  const getCatColor = (catId: number) => cats[catId]?.color || "#888";
 
   // Drag Handlers
   useEffect(() => {
@@ -154,14 +160,6 @@ export const GanttTab: React.FC = () => {
         ))}
       </div>
       
-      <div className="fin-filters" style={{ margin: '14px 14px 0', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: 'none' }}>
-        <button className={`btn btn-tog ${showContr ? 'on' : ''}`} onClick={() => setShowContr(!showContr)}>
-          Підрядники
-        </button>
-        <button className={`btn btn-tog ${hidePast ? 'on' : ''}`} onClick={() => setHidePast(!hidePast)}>
-          Приховати минуле
-        </button>
-      </div>
 
       <div className="gantt-scroll" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
         <table className="gt">
@@ -191,10 +189,7 @@ export const GanttTab: React.FC = () => {
               
               const ecs = Math.max(cs, vs);
               const bW = (ce - ecs + 1) * 25 - 2;
-              const col = getCatColor(t.cat);
-              const warns = checkDeps(t, tasks);
-              const progW = Math.round((t.prog * Math.max(0, bW - 12)) / 100);
-
+              
               const isDraggingRow = drag?.type === 'row' && drag.taskId === t.n;
               const isOverRow = rowOver === t.n;
 
@@ -205,24 +200,20 @@ export const GanttTab: React.FC = () => {
                   className={`${isDraggingRow ? 'row-dragging' : ''} ${isOverRow ? 'row-drag-over' : ''}`}
                 >
                   <td className="td-h" onMouseDown={(e) => onRowMd(e, t)}>⠿</td>
-                  <td className="td-n">{t.n}</td>
-                  <td className="td-nm" title={warns.length > 0 ? warns.join('; ') : t.name} onClick={() => setEditingTask(t.n)}>
-                    <div className="nm-inner">
-                      {warns.length > 0 && <span className="dep-ic">⚠️</span>}
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-                      <span 
-                        className="del-btn" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm(`Видалити "${t.name}"?`)) deleteTask(currentId, t.n);
-                        }}
-                      >
-                        ✕
-                      </span>
+                  <td className="nr">{t.n}</td>
+                  <td className="task-name" onClick={() => setEditingTask(t.n)}>
+                    <div className="tn-wrap">
+                      <span className="tn-txt">{t.name}</span>
+                      {checkDeps(t, tasks).length > 0 && (
+                        <span className="warn-icon" title={checkDeps(t, tasks).join('\n')}>⚠️</span>
+                      )}
+                      <span className="tn-del" onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Видалити "${t.name}"?`)) deleteTask(currentId, t.n);
+                      }}>✕</span>
                     </div>
                   </td>
-                  {showContr && <td className="td-ct">{t.contr || ""}</td>}
-                  
+                  {showContr && <td className="task-contr">{t.contr || '—'}</td>}
                   {Array.from({ length: TW - vs }).map((_, idx) => {
                     const ci = vs + idx;
                     const isToday = ci === tw;
@@ -233,8 +224,11 @@ export const GanttTab: React.FC = () => {
                         {isToday && <div className="today-line"></div>}
                         {isStartCell && (
                           <div 
-                            className={`bar ${drag?.taskId === t.n && drag.type === 'bar' ? 'dragging' : ''}`}
-                            style={{ left: '1px', width: `${bW}px`, background: col }}
+                            className="bar" 
+                            style={{ 
+                              width: `${bW}px`, 
+                              background: cats[t.cat]?.color || '#888'
+                            }}
                             onMouseDown={(e) => onBarMd(e, t, 'M')}
                           >
                             <div className="bh" onMouseDown={(e) => onBarMd(e, t, 'L')}>
@@ -243,8 +237,11 @@ export const GanttTab: React.FC = () => {
                                 <line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.6)" strokeWidth="1"/>
                               </svg>
                             </div>
-                            {t.prog > 0 && <div className="prog-fill" style={{ width: `${progW}px` }}></div>}
-                            <span className="bl">{t.prog > 0 ? `${t.prog}%` : ''}</span>
+                            <div className="bar-p" style={{ width: `${t.prog}%` }}></div>
+                            <div className="bar-t">{t.prog}%</div>
+                            <div className="dep-dots">
+                              {t.deps?.map(dn => <span key={dn} title={`Залежить від #${dn}`}>🔗</span>)}
+                            </div>
                             <div className="bh" onMouseDown={(e) => onBarMd(e, t, 'R')}>
                               <svg width="4" height="8" viewBox="0 0 4 8">
                                 <line x1="1" y1="1" x2="1" y2="7" stroke="rgba(255,255,255,.6)" strokeWidth="1"/>

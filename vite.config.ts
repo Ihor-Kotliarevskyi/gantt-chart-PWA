@@ -6,7 +6,7 @@ import process from "node:process";
 
 export default defineConfig(({ mode }: ConfigEnv) => ({
   base:
-    mode === "production" && process.env.GITHUB_ACTIONS
+    mode === "production" && process.env.GITHUB_ACTIONS && !process.env.NETLIFY
       ? "/gantt-chart-PWA/"
       : "/",
   plugins: [

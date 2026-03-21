@@ -368,16 +368,59 @@
         position: absolute;
         top: 4px;
         bottom: 4px;
+        position: relative; /* CRITICAL for handles */
+        height: 18px;
         border-radius: 4px;
-        cursor: grab;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        cursor: move;
         display: flex;
         align-items: center;
-        overflow: hidden;
-        user-select: none;
+        justify-content: center;
+        transition: transform 0.1s;
+        z-index: 10;
+        overflow: hidden; /* For progress fill */
+      }
+      .bar-p {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.25); /* Darker shading */
+        z-index: 1;
+      }
+      .bar-t {
+        position: relative;
         z-index: 2;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        font-size: 10px;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+      }
+      .bh {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        background: rgba(255, 255, 255, 0.15);
+        cursor: col-resize;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3;
+      }
+      .bh:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .bh svg {
+        opacity: 0.6;
+      }
+      /* Left handle (start) */
+      .bh:nth-child(1) {
+        left: 0;
+      }
+      /* Right handle (end) */
+      .bh:last-child {
+        right: 0;
       }
       .bar:hover {
         filter: brightness(1.07);
@@ -387,37 +430,34 @@
         cursor: grabbing;
         opacity: 0.8;
       }
-      .bh {
-        width: 6px;
-        flex-shrink: 0;
-        height: 100%;
-        cursor: ew-resize;
-        background: rgba(0, 0, 0, 0.14);
+      .tn-wrap {
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        position: relative;
       }
-      .bh:hover {
-        background: rgba(0, 0, 0, 0.24);
-      }
-      .bl {
-        font-size: 9px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
-        flex: 1;
-        padding: 0 3px;
+      .tn-txt {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        pointer-events: none;
+        flex: 1;
       }
-      .prog-fill {
-        position: absolute;
-        top: 0;
-        left: 6px;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.17);
-        pointer-events: none;
+      .tn-del {
+        color: var(--err);
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s;
+        padding: 0 4px;
+        font-weight: bold;
+      }
+      tr:hover .tn-del {
+        opacity: 0.6;
+      }
+      .tn-del:hover {
+        opacity: 1 !important;
+        background: #fee2e2;
+        border-radius: 3px;
       }
       /* ── FINANCE ── */
       .fin-filters {
@@ -666,19 +706,23 @@
         inset: 0;
         background: rgba(0, 0, 0, 0.4);
         display: flex;
-        align-items: center;
+        align-items: flex-start; /* Fix for overflow/scroll */
         justify-content: center;
         z-index: 500;
+        overflow-y: auto; /* Enable scroll on overlay if modal is too tall */
+        padding: 40px 10px;
       }
       .modal {
         background: var(--surf);
         border-radius: 10px;
         padding: 20px;
         width: 440px;
-        max-width: 95vw;
-        max-height: 92vh;
-        overflow-y: auto;
+        max-width: 100%;
+        max-height: 85vh; /* Fix for scroll */
+        overflow-y: auto; /* Fix for scroll */
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+        position: relative;
+        margin-bottom: 40px;
       }
       .modal h3 {
         font-size: 14px;
@@ -986,5 +1030,51 @@
         @page {
           size: A3 landscape;
           margin: 8mm;
+        }
+      }
+      /* ── FINANCE FILTERS ── */
+      .fin-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        background: var(--surf);
+        margin: 14px 14px 0;
+        padding: 12px;
+        border: 1px solid var(--bord);
+        border-radius: 8px;
+        align-items: flex-end;
+      }
+      .ff-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .ff-group label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: var(--txt3);
+        letter-spacing: 0.03em;
+      }
+      .ff-group select, .ff-group input {
+        height: 28px;
+        font-size: 12px;
+        border: 1px solid var(--bord2);
+        border-radius: 5px;
+        padding: 0 8px;
+        background: var(--surf2);
+        color: var(--txt);
+        outline: none;
+      }
+      .ff-group select:focus, .ff-group input:focus {
+        border-color: var(--acc);
+      }
+      .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      /* ── REFINED PRINT STYLES ── */
+      @media print {
+        .chart-builder, .chart-actions, .fin-filters, .m-btns, .td-del, .td-h {
+          display: none !important;
         }
       }

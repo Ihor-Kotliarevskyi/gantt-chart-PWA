@@ -10,7 +10,8 @@ const MN = [
 export const Header: React.FC = () => {
   const { 
     allProjects, currentId, currentProject, switchProject, createProject,
-    setProjectModalOpen, setCategoryModalOpen, setProjectManagerModalOpen, setEditingTask 
+    setProjectModalOpen, setCategoryModalOpen, setProjectManagerModalOpen, setEditingTask,
+    showContr, setShowContr, hidePast, setHidePast
   } = useAppStore();
 
   const getDateRange = () => {
@@ -64,19 +65,35 @@ export const Header: React.FC = () => {
         </select>
         <span className="proj-dates">{getDateRange()}</span>
       </div>
-      <div>
-        <button className="btn" onClick={() => setProjectManagerModalOpen(true)}>📂 Управління проєктами</button>
-        <button className="btn" onClick={() => setProjectModalOpen(true)}>⚙️ Налаштування</button>
-        <button className="btn" onClick={() => setCategoryModalOpen(true)}>🎨 Категорії</button>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <button className="btn" onClick={() => setProjectManagerModalOpen(true)}>📂 Проєкти</button>
+        <button className="btn" onClick={() => setProjectModalOpen(true)}>⚙️</button>
+        <button className="btn" onClick={() => setCategoryModalOpen(true)}>🎨</button>
+        <div style={{ width: '1px', height: '20px', background: 'var(--bord)', margin: '0 4px' }}></div>
+        <button 
+          className={`btn btn-tog ${showContr ? 'on' : ''}`} 
+          onClick={() => setShowContr(!showContr)}
+          title="Показати/приховати підрядників"
+        >
+          👷
+        </button>
+        <button 
+          className={`btn btn-tog ${hidePast ? 'on' : ''}`} 
+          onClick={() => setHidePast(!hidePast)}
+          title="Приховати минуле"
+        >
+          ◀
+        </button>
+        <button className="btn" onClick={() => window.print()} title="Друк проєкту">🖨️</button>
       </div>
       <div style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
-        <button className="btn btn-acc" onClick={() => setEditingTask(-1)}>+ Створити роботу</button>
-        <button className="btn" onClick={onExportCsv}>Завантажити Excel</button>
-        <label className="btn" style={{ cursor: 'pointer' }}>
+        <button className="btn btn-acc" onClick={() => setEditingTask(-1)}>+ Робота</button>
+        <button className="btn" onClick={onExportCsv}>Excel</button>
+        <button className="btn" onClick={onExportJson} title="Експорт JSON">📤</button>
+        <label className="btn" style={{ cursor: 'pointer' }} title="Імпорт JSON">
           📥
           <input type="file" accept=".json" onChange={onImportJson} style={{ display: 'none' }} />
         </label>
-        <button className="btn" onClick={onExportJson} title="Експорт JSON">📤</button>
       </div>
     </header>
   );

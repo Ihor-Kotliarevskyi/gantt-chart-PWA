@@ -27,7 +27,7 @@ export interface Task {
 
 export interface CustomChart {
   id: string;
-  type: 'bar' | 'pie' | 'doughnut' | 'line';
+  type: 'bar' | 'pie' | 'doughnut' | 'line' | 'horizontalBar';
   xKey: string;
   yKey: string;
   catF: string;

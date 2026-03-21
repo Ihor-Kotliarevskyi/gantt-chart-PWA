@@ -6,33 +6,40 @@ type SortCol = 'n' | 'name' | 'cat' | 'contr' | 'dur' | 'budget' | 'spent' | 're
 type SortDir = 1 | -1;
 
 export const FinanceTab: React.FC = () => {
-  const { currentProject } = useAppStore();
+  const currentProject = useAppStore(state => state.allProjects[state.currentId]);
   const [sort, setSort] = useState<{ col: SortCol, dir: SortDir }>({ col: 'n', dir: 1 });
   
-  // Basic filters (can be expanded later)
+  // Extended filters
   const [filterCat, setFilterCat] = useState<number | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'done' | 'active' | 'pending'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'done' | 'active' | 'pending' | 'warn'>('all');
+  const [filterContr, setFilterContr] = useState<string>('');
+  const [budgetMin, setBudgetMin] = useState<number | ''>('');
+  const [budgetMax, setBudgetMax] = useState<number | ''>('');
+  const [onlyBudget, setOnlyBudget] = useState(false);
 
-  const data = useMemo<{ 
-    tasks: any[], 
-    totals: { budget: number, spent: number, rest: number }, 
-    globalTotals: { budget: number, spent: number } 
-  }>(() => {
-    if (!currentProject) return { tasks: [], totals: { budget: 0, spent: 0, rest: 0 }, globalTotals: { budget: 0, spent: 0 } };
+  const data = useMemo(() => {
+    if (!currentProject) return { tasks: [], totals: { budget: 0, spent: 0, rest: 0 }, globalTotals: { budget: 0, spent: 0 }, contractors: [] };
     
     const { proj, tasks, cats } = currentProject;
     
+    const contractors = [...new Set(tasks.map(t => t.contr || '').filter(Boolean))];
+
     let filtered = tasks.filter(t => {
       if (filterCat !== 'all' && t.cat !== filterCat) return false;
       if (filterStatus === 'done' && t.prog < 100) return false;
       if (filterStatus === 'active' && (t.prog === 0 || t.prog === 100)) return false;
       if (filterStatus === 'pending' && t.prog !== 0) return false;
+      if (filterStatus === 'warn' && checkDeps(t, tasks).length === 0) return false;
+      if (filterContr && t.contr !== filterContr) return false;
+      if (budgetMin !== '' && (t.budget || 0) < budgetMin) return false;
+      if (budgetMax !== '' && (t.budget || 0) > budgetMax) return false;
+      if (onlyBudget && !(t.budget > 0)) return false;
       return true;
     });
 
     const mapped = filtered.map(t => {
-      const budget = t.budget || 0;
-      const spent = t.spent || 0;
+      const budget = Number(t.budget) || 0;
+      const spent = Number(t.spent) || 0;
       const rest = budget - spent;
       const rw = remWk(t, proj);
       return {
@@ -53,22 +60,22 @@ export const FinanceTab: React.FC = () => {
       if (typeof av === 'string') {
         return sort.dir * av.localeCompare(bv, 'uk');
       }
-      return sort.dir * (av - bv);
+      return sort.dir * (Number(av) - Number(bv));
     });
 
     const totals = mapped.reduce((acc, t) => ({
-      budget: acc.budget + (t.budget || 0),
-      spent: acc.spent + (t.spent || 0),
-      rest: acc.rest + t.rest
+      budget: acc.budget + (Number(t.budget) || 0),
+      spent: acc.spent + (Number(t.spent) || 0),
+      rest: acc.rest + (Number(t.rest) || 0)
     }), { budget: 0, spent: 0, rest: 0 });
 
-    const globalTotals: { budget: number, spent: number } = tasks.reduce((acc, t) => ({
-      budget: acc.budget + (t.budget || 0),
-      spent: acc.spent + (t.spent || 0)
+    const globalTotals = tasks.reduce((acc, t) => ({
+      budget: acc.budget + (Number(t.budget) || 0),
+      spent: acc.spent + (Number(t.spent) || 0)
     }), { budget: 0, spent: 0 });
 
-    return { tasks: mapped, totals, globalTotals };
-  }, [currentProject, sort, filterCat, filterStatus]);
+    return { tasks: mapped, totals, globalTotals, contractors };
+  }, [currentProject, sort, filterCat, filterStatus, filterContr, budgetMin, budgetMax, onlyBudget]);
 
   if (!currentProject) return null;
   const { cats } = currentProject;
@@ -80,11 +87,19 @@ export const FinanceTab: React.FC = () => {
     }));
   };
 
+  const resetFilters = () => {
+    setFilterCat('all');
+    setFilterStatus('all');
+    setFilterContr('');
+    setBudgetMin('');
+    setBudgetMax('');
+    setOnlyBudget(false);
+  };
+
   const getSortClass = (col: SortCol) => {
     if (sort.col !== col) return '';
     return sort.dir === 1 ? 'asc' : 'desc';
   };
-
   const { budget: gb, spent: gs } = data.globalTotals;
   const gr = gb - gs;
   const gop = gb > 0 ? Math.round((gs / gb) * 100) : 0;
@@ -114,17 +129,46 @@ export const FinanceTab: React.FC = () => {
         </div>
       </div>
 
-      <div className="fin-filters" style={{ margin: '14px 14px 0' }}>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value === 'all' ? 'all' : +e.target.value)}>
-          <option value="all">Усі категорії</option>
-          {cats.map((c, i) => <option key={i} value={i}>{c.name}</option>)}
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
-          <option value="all">Усі статуси</option>
-          <option value="done">Тільки завершені</option>
-          <option value="active">В роботі</option>
-          <option value="pending">Не розпочаті</option>
-        </select>
+      <div className="fin-filters">
+        <div className="ff-group">
+          <label>Категорія</label>
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value === 'all' ? 'all' : +e.target.value)}>
+            <option value="all">Усі категорії</option>
+            {cats.map((c, i) => <option key={i} value={i}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="ff-group">
+          <label>Статус</label>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+            <option value="all">Усі статуси</option>
+            <option value="done">Завершено (100%)</option>
+            <option value="active">В роботі</option>
+            <option value="pending">Не розпочато</option>
+            <option value="warn">З порушеннями</option>
+          </select>
+        </div>
+        <div className="ff-group">
+          <label>Підрядник</label>
+          <select value={filterContr} onChange={e => setFilterContr(e.target.value)}>
+            <option value="">Усі</option>
+            {data.contractors.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="ff-group">
+          <label>Бюджет від (грн)</label>
+          <input type="number" value={budgetMin} onChange={e => setBudgetMin(e.target.value === '' ? '' : +e.target.value)} placeholder="0" />
+        </div>
+        <div className="ff-group">
+          <label>Бюджет до (грн)</label>
+          <input type="number" value={budgetMax} onChange={e => setBudgetMax(e.target.value === '' ? '' : +e.target.value)} placeholder="∞" />
+        </div>
+        <div className="ff-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '5px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', textTransform: 'none', letterSpacing: '0' }}>
+            <input type="checkbox" checked={onlyBudget} onChange={e => setOnlyBudget(e.target.checked)} />
+            Тільки з бюджетом
+          </label>
+          <button className="btn btn-sm" onClick={resetFilters} style={{ padding: '3px 7px' }}>Скинути</button>
+        </div>
       </div>
 
       <div className="gantt-scroll" style={{ padding: '0 14px 14px' }}>

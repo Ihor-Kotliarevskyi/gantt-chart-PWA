@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Modal } from "../Modal";
-import { getMonthList } from "../../utils/ganttUtils";
+import { getMonthList, fmtM } from "../../utils/ganttUtils";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   onClose,
   taskId,
 }) => {
-  const { currentProject, addTask, updateTask } = useAppStore();
+  const { currentProject, addTask, updateTask, currentId } = useAppStore();
 
   // Form State
   const [name, setName] = useState("");
@@ -62,6 +62,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   }, [isOpen, taskId, currentProject]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        const input = document.getElementById("f-name");
+        if (input) input.focus();
+      }, 50);
+    }
+  }, [isOpen]);
+
   if (!currentProject) return null;
   const { proj, cats, tasks } = currentProject;
   const ml = getMonthList(proj);
@@ -93,7 +102,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     onClose();
   };
 
-  const { currentId } = useAppStore.getState();
 
   const handleDepToggle = (n: number) => {
     setDeps((prev) =>
@@ -102,7 +110,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const rest = budget - spent;
-  const restText = rest >= 0 ? `${rest} грн` : `Перевищення ${-rest} грн`;
+  const restText = rest >= 0 ? `${fmtM(rest)} грн` : `Перевищення ${fmtM(-rest)} грн`;
+  
+  const duration = (me * 4 + we) - (ms * 4 + ws) + 1;
+  const rate = duration > 0 ? Math.round(rest / duration) : 0;
+  const calcText = budget > 0 
+    ? `Залишок: ${fmtM(rest)} грн · Тижнів: ${duration} · Ставка: ${duration > 0 ? fmtM(rate) + " грн/тиж" : "—"}`
+    : "Заповніть вартість для розрахунку";
 
   return (
     <Modal
@@ -113,6 +127,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       <div className="fg">
         <label>Назва</label>
         <input
+          id="f-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Введіть назву..."
@@ -234,6 +249,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             style={{ background: "var(--surf2)", color: "var(--txt2)" }}
           />
         </div>
+      </div>
+
+      <div className="calc-row" style={{ background: "var(--surf2)", padding: '7px 10px', fontSize: '11px', borderRadius: '5px', marginBottom: '10px' }}>
+        {calcText}
       </div>
 
       <div className="fg">
